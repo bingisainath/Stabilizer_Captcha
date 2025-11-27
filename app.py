@@ -16,7 +16,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(BASE_DIR, '../logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
-logging.basicConfig(level=logging.INFO)
+# Configure Logger to print to console immediately
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)s | %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -26,14 +30,9 @@ active_sessions = {}
 SESSION_TIMEOUT = 600
 
 # CONFIGURATION
-FRAME_COUNT = 300 # Target is 5 seconds (60fps * 5)
-# UPDATED: Minimum frames required to PASS. 
-# We allow a small buffer (e.g., 20 frames) for lag/network drop, 
-# but they must essentially complete the full duration.
+FRAME_COUNT = 300 
+# Strict threshold: Must last ~4.7s of the 5s to pass (allow small network/render lag)
 PASS_FRAME_THRESHOLD = FRAME_COUNT - 20 
-
-PERFECT_ANGLE_THRESHOLD = 0.001
-MAX_PERFECT_FRAMES = 30
 MAX_ATTEMPTS = 3 
 
 def cleanup_expired_sessions():
@@ -74,53 +73,103 @@ def generate_force_jolts(frame_count):
                     jolts[jolt_frame + decay] = jolts[jolt_frame] * (0.5 ** decay)
     return jolts
 
-def calculate_bot_probability(angle_history):
+def calculate_variance(values):
+    if not values: return 0
+    mean = sum(values) / len(values)
+    return sum((x - mean) ** 2 for x in values) / len(values)
+
+# =========================================================
+#  BEHAVIORAL ANALYSIS ENGINE
+# =========================================================
+def analyze_behavior_pattern(angle_history):
     """
-    Analyzes movement to determine likelihood of being a bot.
-    Returns (ai_percent, human_percent)
+    Advanced heuristic analysis of physics data to determine Bot vs Human.
+    Returns: (ai_probability, human_probability, details_dict)
     """
     if not angle_history or len(angle_history) < 10:
-        return 0, 100
+        return 0, 100, {"error": "insufficient_data"}
 
-    # 1. Reflex Ratio (High = Bot)
-    immediate_corrections = 0
-    significant_frames = 0
-    for i in range(1, len(angle_history) - 1):
-        if abs(angle_history[i]) > 0.02:
-            significant_frames += 1
-            is_correcting = (angle_history[i] > 0 and angle_history[i+1] < angle_history[i]) or \
-                            (angle_history[i] < 0 and angle_history[i+1] > angle_history[i])
-            if is_correcting:
-                immediate_corrections += 1
+    # --- 1. PRE-CALCULATE DERIVATIVES ---
+    # Velocity: Change in angle per frame
+    velocity = [angle_history[i] - angle_history[i-1] for i in range(1, len(angle_history))]
     
-    reflex_ratio = immediate_corrections / significant_frames if significant_frames > 0 else 0
+    # --- 2. CALCULATE METRICS ---
 
-    # 2. Variance (Extremely Low = Bot)
-    diffs = [abs(angle_history[i] - angle_history[i-1]) for i in range(1, len(angle_history))]
-    mean_diff = sum(diffs)/len(diffs) if diffs else 0
-    variance = sum((x - mean_diff)**2 for x in diffs) / len(diffs) if diffs else 0
+    # A. Total Distance (Effort)
+    # Bots hold position efficiently (low distance). Humans constantly micro-correct (high distance).
+    total_distance = sum(abs(v) for v in velocity)
     
-    # Scoring Logic
-    ai_score = 0
-    
-    # Reflex check
-    if reflex_ratio > 0.95: ai_score += 90
-    elif reflex_ratio > 0.85: ai_score += 60
-    elif reflex_ratio > 0.70: ai_score += 30
-    
-    # Variance check (Dead stillness or perfect linear movement)
-    if variance < 1e-9: ai_score += 100
-    elif variance < 1e-7: ai_score += 50
-    
-    # Perfection check
-    perfect_frames = sum(1 for a in angle_history if abs(a) < 0.001)
-    if perfect_frames > 40: ai_score += 80
+    # B. Micro-Oscillations (PID Shake)
+    # PID controllers often flip velocity direction every frame (zigzag).
+    velocity_flips = sum(1 for i in range(1, len(velocity)) if velocity[i] * velocity[i-1] < 0)
+    flip_ratio = velocity_flips / len(velocity) if len(velocity) > 0 else 0
 
-    # Cap and calculate
-    ai_final = min(100, max(0, ai_score))
-    human_final = 100 - ai_final
+    # C. Reaction Latency (The "Biological Delay")
+    # Bots react in 1 frame. Humans react in 10-20 frames (approx 200ms).
+    correction_lags = []
+    frames_since_deviation = 0
     
-    return ai_final, human_final
+    for i in range(len(angle_history)):
+        val = angle_history[i]
+        if abs(val) > 0.01: # Threshold for "needs correction"
+            frames_since_deviation += 1
+            # If velocity opposes angle, they are correcting
+            if i > 0 and (val * velocity[i-1] < 0):
+                correction_lags.append(frames_since_deviation)
+                frames_since_deviation = 0
+        else:
+            frames_since_deviation = 0
+            
+    avg_reaction_frames = sum(correction_lags) / len(correction_lags) if correction_lags else 0
+
+    # D. Uniformity (Variance)
+    # Deadbots or static scripts have near-zero variance.
+    vel_variance = calculate_variance(velocity)
+
+    # --- 3. SCORING LOGIC (0 = Human, 100 = Bot) ---
+    bot_score = 0
+    reasons = []
+
+    # Check 1: Superhuman Stability (Variance)
+    if vel_variance < 1e-7:
+        bot_score += 100
+        reasons.append("Zero Variance (Static)")
+    elif vel_variance < 1e-5:
+        bot_score += 40
+        reasons.append("Low Variance (Robotic Precision)")
+
+    # Check 2: The "PID Shake" (Flip Ratio)
+    # If direction flips > 60% of frames, it's likely a high-frequency PID controller
+    if flip_ratio > 0.60:
+        bot_score += 50
+        reasons.append(f"High Frequency Oscillation ({flip_ratio:.2f})")
+    
+    # Check 3: Reaction Time
+    # If average reaction is < 3 frames (50ms), it's superhuman.
+    if avg_reaction_frames < 3 and avg_reaction_frames > 0:
+        bot_score += 60
+        reasons.append(f"Instant Reaction ({avg_reaction_frames:.1f} frames)")
+    
+    # Check 4: Efficiency (Total Distance)
+    # If they moved the pole VERY little over 5 seconds, it's suspicious.
+    if total_distance < 0.5: # Tuned threshold
+        bot_score += 30
+        reasons.append("Unnatural Efficiency")
+
+    # Final Clamping
+    final_ai_prob = min(100, max(0, bot_score))
+    final_human_prob = 100 - final_ai_prob
+
+    details = {
+        "total_distance": round(total_distance, 4),
+        "avg_velocity": round(sum(abs(v) for v in velocity)/len(velocity) if velocity else 0, 5),
+        "velocity_flip_ratio": round(flip_ratio, 2),
+        "avg_reaction_frames": round(avg_reaction_frames, 1),
+        "variance": f"{vel_variance:.2e}",
+        "reasons": reasons
+    }
+
+    return final_ai_prob, final_human_prob, details
 
 # --- ROUTES ---
 
@@ -185,14 +234,26 @@ def verify_stability():
         return jsonify({'success': False, 'verified': False, 'message': 'Session Expired'}), 403
     del active_sessions[token]
 
-    # Calculate Metrics regardless of outcome
-    ai_pct, human_pct = calculate_bot_probability(history)
+    # --- RUN BEHAVIOR ANALYSIS ---
+    ai_pct, human_pct, details = analyze_behavior_pattern(history)
+    
+    # --- LOGGING ---
+    logger.info("="*50)
+    logger.info(f"VERIFICATION ATTEMPT - Session: {token[:8]}...")
+    logger.info(f"PROBABILITY :: Human: {human_pct}% | Bot: {ai_pct}%")
+    logger.info(f"METRICS     :: Dist: {details.get('total_distance')} | Reaction: {details.get('avg_reaction_frames')}f | Flips: {details.get('velocity_flip_ratio')}")
+    logger.info(f"FLAGS       :: {details.get('reasons')}")
+    logger.info("="*50)
+
     metrics = {'ai': round(ai_pct, 1), 'human': round(human_pct, 1)}
 
     # Helper for failures
     def fail(msg):
         session['attempts'] += 1
         left = MAX_ATTEMPTS - session['attempts']
+        
+        logger.warning(f"FAILED: {msg} (Attempts left: {left})")
+        
         response = {
             'success': True, 
             'verified': False, 
@@ -203,19 +264,16 @@ def verify_stability():
         if left <= 0: response['redirect'] = '/failed'
         return jsonify(response)
 
-    # --- UPDATED VALIDATION CHECKS ---
-    
-    # 1. Survival Check: Must last the FULL duration (minus small buffer)
+    # 1. Survival Check
     if len(history) < PASS_FRAME_THRESHOLD:
         duration_sec = len(history) / 60
         return fail(f'Failed: Lasted {duration_sec:.1f}s / 5.0s')
 
-    # 2. Crash Check: Ensure the final angle wasn't a crash
-    # Even if history is long enough, if the last angle is huge, it's a fail
-    if len(history) > 0 and abs(history[-1]) > 1.4: # 1.4 is approx failure angle
+    # 2. Crash Check (Final Angle)
+    if len(history) > 0 and abs(history[-1]) > 1.4:
          return fail('Failed: Reactor crashed at the finish line.')
 
-    # 3. Bot Check
+    # 3. AI Probability Check
     if ai_pct > 80: 
         return fail('Anomaly: Non-biological movement detected.')
 
@@ -224,6 +282,8 @@ def verify_stability():
     sign_changes = sum(1 for i in range(1, len(history)) if history[i] * history[i-1] < 0)
     max_angle = max(abs(a) for a in history) if history else 0
     
+    logger.info("SUCCESS: User verified as Human.")
+
     return jsonify({
         'success': True,
         'verified': True,

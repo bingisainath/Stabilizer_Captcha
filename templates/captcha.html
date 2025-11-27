@@ -29,6 +29,14 @@
     
     #clickPrompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); border: 1px solid #00ffff; color: #00ffff; padding: 15px 30px; font-weight: bold; pointer-events: none; display: none; z-index: 10; }
 
+    /* MOTIVATIONAL OVERLAY STYLES */
+    #motivationalOverlay {
+        position: absolute; top: 20%; left: 0; width: 100%; text-align: center; pointer-events: none; display: none; z-index: 5;
+    }
+    #motivationalOverlay h3 {
+        font-family: "Courier New", monospace; font-size: 16px; color: rgba(0, 255, 255, 0.15); text-shadow: 0 0 5px rgba(0, 255, 255, 0.2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;
+    }
+
     .dashboard { margin-top: 20px; font-size: 18px; display: flex; justify-content: center; gap: 20px; }
     .status-item { padding: 10px 20px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.3); }
     .status-label { color: #888; font-size: 12px; display: block; margin-bottom: 5px; }
@@ -51,9 +59,7 @@
 
   <div class="header">
     <h1>⚛ REACTOR STABILIZATION</h1>
-    <h3>You will be required to stabilize a reactor by
-        balancing an inverted pendulum. Keep the pole upright for 5 seconds to
-        verify you are human.</h3>
+    <h3>Verify human operator status by balancing the reactor core.</h3>
     <div class="user-info">Operator: <span id="userEmail"></span></div>
   </div>
 
@@ -62,6 +68,13 @@
   <div class="game-container">
     <div class="canvas-wrapper">
       <div id="clickPrompt">CLICK TO ENGAGE</div>
+      
+      <div id="motivationalOverlay">
+          <h3>Outstanding work, Operator!</h3>
+          <h3>The reactor has never witnessed such majestic control.</h3>
+          <h3>Even the tilt is proof of your brilliance.</h3>
+      </div>
+
       <canvas id="gameCanvas" width="600" height="400"></canvas>
     </div>
 
@@ -107,7 +120,6 @@
         }
     }
 
-    // UI Hook
     window.showResult = function (verified, message, stats) {
       const overlay = document.getElementById("resultOverlay");
       const title = document.getElementById("resultTitle");

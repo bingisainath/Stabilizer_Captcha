@@ -52,6 +52,8 @@ const attemptsDisplay = document.getElementById("attemptsDisplay");
 const clickPrompt = document.getElementById("clickPrompt");
 const verifyBtn = document.getElementById("verifyBtn");
 const retryBtn = document.getElementById("retryBtn");
+// Motivation Overlay
+const motivationOverlay = document.getElementById("motivationalOverlay");
 
 // ==================== INITIALIZATION ====================
 async function initGame() {
@@ -86,7 +88,6 @@ async function initGame() {
     statusEl.textContent = "REACTOR READY // AWAITING OPERATOR";
     clickPrompt.style.display = "block";
 
-    // Hide retry button on fresh init
     if(retryBtn) retryBtn.classList.remove("visible");
 
     requestAnimationFrame(gameLoop);
@@ -146,7 +147,6 @@ function setupInputHandlers() {
     }
   });
 
-  // verifyBtn is only used for manual success verification
   if(verifyBtn) verifyBtn.addEventListener("click", verifyHuman);
 }
 
@@ -162,6 +162,10 @@ function startGame() {
   state.success = false;
 
   clickPrompt.style.display = "none";
+  
+  // SHOW MOTIVATION
+  if(motivationOverlay) motivationOverlay.style.display = "block";
+
   statusEl.className = "active";
   statusEl.textContent = "STABILIZATION IN PROGRESS...";
   
@@ -174,17 +178,17 @@ function endGame(success) {
   state.gameOver = true;
   state.success = success;
 
+  // HIDE MOTIVATION
+  if(motivationOverlay) motivationOverlay.style.display = "none";
+
   if (success) {
-    // Success Case: User clicks button to confirm
     statusEl.className = "success";
     statusEl.textContent = "STABILIZED // VERIFICATION REQUIRED";
     verifyBtn.classList.add("visible");
   } else {
-    // Failure Case: AUTOMATICALLY REPORT FAILURE TO SERVER
+    // AUTO-REPORT FAILURE
     statusEl.className = "failed";
     statusEl.textContent = "CRITICAL FAILURE // SYNCING WITH SERVER...";
-    
-    // Call verifyHuman immediately to register the failure and decrement attempts
     verifyHuman(); 
   }
 }
@@ -192,7 +196,6 @@ function endGame(success) {
 async function verifyHuman() {
   if(verifyBtn) verifyBtn.classList.remove("visible");
   
-  // If this was a success run, show analyzing. If failure, we are just syncing.
   if (state.success) {
       statusEl.textContent = "ANALYZING BIOMETRIC SIGNATURE...";
   }
@@ -218,7 +221,6 @@ async function verifyHuman() {
     }
 
     // 2. REAL-TIME ATTEMPTS UPDATE
-    // This will now update immediately after the pole drops
     if (data.attempts_left !== undefined) {
         if (attemptsDisplay) {
             attemptsDisplay.textContent = "Attempts Left: " + data.attempts_left;
@@ -227,10 +229,9 @@ async function verifyHuman() {
     }
 
     if (data.verified) {
-      // SUCCESS REDIRECT
       window.location.href = data.redirect || "/success";
     } else {
-      // FAILURE REDIRECT (LOCKOUT)
+      // CHECK LOCKOUT
       if (data.redirect) {
           window.location.href = data.redirect;
           return;
@@ -238,7 +239,7 @@ async function verifyHuman() {
 
       // SHOW RESULT OVERLAY
       if (typeof window.showResult === "function") {
-        const msg = `${data.message}`; // Stats usually null on failure
+        const msg = `${data.message}`; 
         window.showResult(data.verified, msg, data.stats);
       }
       
@@ -269,7 +270,6 @@ async function resetGame() {
   verifyBtn.classList.remove("visible");
   retryBtn.classList.remove("visible");
   
-  // Close result overlay
   const overlay = document.getElementById("resultOverlay");
   if(overlay) overlay.style.display = "none";
 
@@ -278,7 +278,6 @@ async function resetGame() {
 
 // ==================== RENDERING ====================
 function render() {
-  // Clear
   ctx.fillStyle = "#0d0d0d";
   ctx.fillRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
 
@@ -348,7 +347,6 @@ function updateDisplays() {
   }
 }
 
-// ==================== GAME LOOP ====================
 let lastTime = 0;
 const frameInterval = 1000 / CONFIG.fps;
 
