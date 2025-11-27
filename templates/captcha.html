@@ -1,306 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reactor Stabilization</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reactor Stabilization</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Courier New", monospace;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; padding: 20px;
+    }
+    .header { text-align: center; margin: 20px 0; }
+    .header h1 { font-size: 28px; color: #00ffff; margin-bottom: 10px; }
+    
+    #status { font-weight: bold; margin-bottom: 15px; padding: 10px; border: 1px solid transparent; text-align: center; min-height: 40px; }
+    #status.loading { color: #ffff00; }
+    #status.ready { color: #00ffff; border-color: #00ffff; background: rgba(0, 255, 255, 0.1); }
+    #status.active { color: #fff; }
+    #status.success { color: #00ff00; }
+    #status.failed { color: #ff3333; }
 
-      body {
-        font-family: "Courier New", monospace;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        color: #e0e0e0;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-      }
+    .game-container { text-align: center; position: relative; }
+    .canvas-wrapper { position: relative; display: inline-block; }
+    #gameCanvas { border: 2px solid rgba(0, 255, 255, 0.5); border-radius: 8px; cursor: crosshair; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); background: rgba(0, 0, 0, 0.5); display: block; }
+    
+    #clickPrompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); border: 1px solid #00ffff; color: #00ffff; padding: 15px 30px; font-weight: bold; pointer-events: none; display: none; z-index: 10; }
 
-      .header {
-        text-align: center;
-        margin: 20px 0;
-      }
+    .dashboard { margin-top: 20px; font-size: 18px; display: flex; justify-content: center; gap: 20px; }
+    .status-item { padding: 10px 20px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.3); }
+    .status-label { color: #888; font-size: 12px; display: block; margin-bottom: 5px; }
+    .status-value { color: #00ffff; font-size: 20px; font-weight: bold; }
 
-      .header h1 {
-        font-size: 28px;
-        color: #00ffff;
-        margin-bottom: 10px;
-      }
+    #verifyBtn, #retryBtn { margin-top: 30px; padding: 15px 40px; border: none; border-radius: 4px; font-family: "Courier New", monospace; font-size: 16px; font-weight: bold; cursor: pointer; display: none; transition: all 0.3s; }
+    #verifyBtn.visible, #retryBtn.visible { display: inline-block; }
+    #verifyBtn { background: linear-gradient(135deg, #00ffff 0%, #0099ff 100%); color: #000; }
+    #retryBtn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(0, 255, 255, 0.5); color: #00ffff; }
+    
+    .result-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .result-box { background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(0, 255, 255, 0.5); border-radius: 8px; padding: 40px; text-align: center; max-width: 500px; }
+    .result-box.visible { display: block; }
+    
+    .logout-btn { position: absolute; top: 20px; right: 20px; padding: 8px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); color: #888; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <button class="logout-btn" onclick="logout()">Logout</button>
 
-      /* Status Message Bar (Controlled by JS) */
-      #status {
-        font-weight: bold;
-        margin-bottom: 15px;
-        padding: 10px;
-        border: 1px solid transparent;
-        transition: all 0.3s;
-        text-align: center;
-        min-height: 40px;
-      }
-      #status.loading {
-        color: #ffff00;
-      }
-      #status.ready {
-        color: #00ffff;
-        border-color: #00ffff;
-        background: rgba(0, 255, 255, 0.1);
-      }
-      #status.active {
-        color: #fff;
-      }
-      #status.success {
-        color: #00ff00;
-      }
-      #status.failed {
-        color: #ff3333;
-      }
+  <div class="header">
+    <h1>⚛ REACTOR STABILIZATION</h1>
+    <h3>You will be required to stabilize a reactor by
+        balancing an inverted pendulum. Keep the pole upright for 5 seconds to
+        verify you are human.</h3>
+    <div class="user-info">Operator: <span id="userEmail"></span></div>
+  </div>
 
-      .game-container {
-        text-align: center;
-        position: relative;
-      }
+  <div id="status">INITIALIZING SYSTEM...</div>
 
-      /* Canvas Wrapper to hold absolute elements */
-      .canvas-wrapper {
-        position: relative;
-        display: inline-block;
-      }
-
-      #gameCanvas {
-        border: 2px solid rgba(0, 255, 255, 0.5);
-        border-radius: 8px;
-        cursor: crosshair;
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-        background: rgba(0, 0, 0, 0.5);
-        display: block;
-      }
-
-      /* The "CLICK TO START" overlay */
-      #clickPrompt {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.8);
-        border: 1px solid #00ffff;
-        color: #00ffff;
-        padding: 15px 30px;
-        font-weight: bold;
-        pointer-events: none; /* Let clicks pass through to canvas */
-        display: none;
-        z-index: 10;
-      }
-
-      /* Dashboard Stats */
-      .dashboard {
-        margin-top: 20px;
-        font-size: 18px;
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-      }
-
-      .status-item {
-        padding: 10px 20px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 4px;
-        border: 1px solid rgba(0, 255, 255, 0.3);
-      }
-
-      .status-label {
-        color: #888;
-        font-size: 12px;
-        display: block;
-        margin-bottom: 5px;
-      }
-
-      .status-value {
-        color: #00ffff;
-        font-size: 20px;
-        font-weight: bold;
-      }
-
-      .status-value.danger {
-        color: #ff3333;
-      }
-      .status-value.warning {
-        color: #ffcc00;
-      }
-
-      /* Buttons */
-      #verifyBtn,
-      #retryBtn {
-        margin-top: 30px;
-        padding: 15px 40px;
-        border: none;
-        border-radius: 4px;
-        font-family: "Courier New", monospace;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        display: none; /* Hidden by default */
-        transition: all 0.3s;
-      }
-
-      #verifyBtn.visible,
-      #retryBtn.visible {
-        display: inline-block;
-      }
-
-      #verifyBtn {
-        background: linear-gradient(135deg, #00ffff 0%, #0099ff 100%);
-        color: #000;
-      }
-
-      #retryBtn {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(0, 255, 255, 0.5);
-        color: #00ffff;
-      }
-
-      #verifyBtn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(0, 255, 255, 0.5);
-      }
-      #retryBtn:hover {
-        background: rgba(0, 255, 255, 0.2);
-      }
-
-      /* Results Overlay */
-      .result-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-      }
-
-      .result-box {
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid rgba(0, 255, 255, 0.5);
-        border-radius: 8px;
-        padding: 40px;
-        text-align: center;
-        max-width: 500px;
-      }
-
-      .result-box.visible {
-        display: block;
-      } /* JS toggles this class */
-
-      /* Logout Button */
-      .logout-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        padding: 8px 16px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #888;
-        cursor: pointer;
-      }
-    </style>
-  </head>
-  <body>
-    <button class="logout-btn" onclick="logout()">Logout</button>
-
-    <div class="header">
-      <h1>⚛ REACTOR STABILIZATION</h1>
-      <div class="user-info">Operator: <span id="userEmail"></span></div>
+  <div class="game-container">
+    <div class="canvas-wrapper">
+      <div id="clickPrompt">CLICK TO ENGAGE</div>
+      <canvas id="gameCanvas" width="600" height="400"></canvas>
     </div>
 
-    <div id="status">INITIALIZING SYSTEM...</div>
-
-    <div class="game-container">
-      <div class="canvas-wrapper">
-        <div id="clickPrompt">CLICK TO ENGAGE</div>
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div class="dashboard">
+      <div class="status-item">
+        <span class="status-label">TIME</span>
+        <span class="status-value" id="timeDisplay">0.0s</span>
       </div>
-
-      <div class="dashboard">
-        <div class="status-item">
-          <span class="status-label">TIME</span>
-          <span class="status-value" id="timeDisplay">0.0s</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">ANGLE</span>
-          <span class="status-value" id="angleDisplay">0.0°</span>
-        </div>
-
-        <div style="display: none">
-          <span id="gravityDisplay"></span>
-          <span id="lengthDisplay"></span>
-        </div>
+      <div class="status-item">
+        <span class="status-label">ANGLE</span>
+        <span class="status-value" id="angleDisplay">0.0°</span>
       </div>
-
-      <button id="verifyBtn">VERIFY COMPLETION</button>
-      <button id="retryBtn" onclick="retry()">RETRY STABILIZATION</button>
-    </div>
-
-    <div class="result-overlay" id="resultOverlay">
-      <div class="result-box" id="resultBox">
-        <div class="result-title" id="resultTitle"></div>
-        <div class="result-stats" id="resultStats"></div>
-        <button class="retry-btn" onclick="retry()">TRY AGAIN</button>
+      <div class="status-item">
+        <span class="status-label">SECURITY</span>
+        <span class="status-value" id="attemptsDisplay">Loading...</span>
       </div>
     </div>
 
-    <script src="{{ url_for('static', filename='stabilizer.js') }}"></script>
-    <script>
-      // Auth Check
-      if (!sessionStorage.getItem("reactor_logged_in")) {
-        window.location.href = "/";
-      }
-      document.getElementById("userEmail").textContent =
-        sessionStorage.getItem("reactor_email") || "Unknown";
+    <button id="verifyBtn">VERIFY COMPLETION</button>
+    <button id="retryBtn" onclick="retry()">RETRY STABILIZATION</button>
+  </div>
 
-      function logout() {
-        sessionStorage.clear();
-        window.location.href = "/";
-      }
+  <div class="result-overlay" id="resultOverlay">
+    <div class="result-box" id="resultBox">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-stats" id="resultStats"></div>
+      <button class="retry-btn" onclick="retry()" style="margin-top:20px; padding:10px 20px; background:#333; color:#fff; border:1px solid #666; cursor:pointer;">TRY AGAIN</button>
+    </div>
+  </div>
 
-      function retry() {
-        location.reload();
-      }
+  <script src="{{ url_for('static', filename='stabilizer.js') }}"></script>
+  <script>
+    if (!sessionStorage.getItem("reactor_logged_in")) { window.location.href = "/"; }
+    document.getElementById("userEmail").textContent = sessionStorage.getItem("reactor_email") || "Unknown";
 
-      // Hook for JS result display
-      window.showResult = function (verified, message, stats) {
-        const overlay = document.getElementById("resultOverlay");
-        const box = document.getElementById("resultBox");
-        const title = document.getElementById("resultTitle");
-        const statsEl = document.getElementById("resultStats");
-
-        overlay.style.display = "flex";
-        box.classList.add("visible");
-
-        if (verified) {
-          title.textContent = "✓ HUMAN VERIFIED";
-          title.style.color = "#00ff41";
+    function logout() { sessionStorage.clear(); window.location.href = "/"; }
+    
+    function retry() { 
+        if (typeof resetGame === "function") {
+            resetGame(); 
         } else {
-          title.textContent = "✗ " + message;
-          title.style.color = "#ff3333";
+            location.reload(); 
         }
+    }
 
-        if (stats) {
-          statsEl.innerHTML = `
-                <div style="margin:20px 0; text-align:left; font-size:14px; color:#ccc;">
-                    <div>Duration: ${stats.duration.toFixed(2)}s</div>
-                    <div>Max Deviation: ${stats.max_deviation.toFixed(1)}°</div>
-                    <div>Stability: ${stats.stability_score}%</div>
-                </div>`;
-        }
-      };
-    </script>
-  </body>
+    // UI Hook
+    window.showResult = function (verified, message, stats) {
+      const overlay = document.getElementById("resultOverlay");
+      const title = document.getElementById("resultTitle");
+      const statsEl = document.getElementById("resultStats");
+
+      overlay.style.display = "flex";
+      
+      if (verified) {
+        title.textContent = "✓ HUMAN VERIFIED";
+        title.style.color = "#00ff41";
+      } else {
+        title.textContent = "✗ " + message;
+        title.style.color = "#ff3333";
+      }
+
+      if (stats) {
+        statsEl.innerHTML = `
+            <div style="margin:20px 0; text-align:left; font-size:14px; color:#ccc;">
+                <div>Duration: ${stats.duration.toFixed(2)}s</div>
+                <div>Max Deviation: ${stats.max_deviation.toFixed(1)}°</div>
+                <div>Stability Score: ${stats.stability_score}%</div>
+            </div>`;
+      }
+    };
+  </script>
+</body>
 </html>
