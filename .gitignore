@@ -1,2 +1,3 @@
 venv
 requirements-incl-attackers.txt
+.env
