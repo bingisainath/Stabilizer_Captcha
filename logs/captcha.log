@@ -1,0 +1,61 @@
+2025-11-27 03:41:37,367 - INFO - Starting Reactor Stabilizer on port 3000
+2025-11-27 03:41:37,375 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3000
+ * Running on http://172.18.217.128:3000
+2025-11-27 03:41:37,375 - INFO - [33mPress CTRL+C to quit[0m
+2025-11-27 03:41:46,900 - INFO - 127.0.0.1 - - [27/Nov/2025 03:41:46] "GET / HTTP/1.1" 200 -
+2025-11-27 03:41:47,497 - INFO - 127.0.0.1 - - [27/Nov/2025 03:41:47] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-11-27 03:41:51,089 - INFO - 127.0.0.1 - - [27/Nov/2025 03:41:51] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:41:51,106 - INFO - 127.0.0.1 - - [27/Nov/2025 03:41:51] "GET /static/stabilizer.js HTTP/1.1" 200 -
+2025-11-27 03:41:51,109 - INFO - Session created: BsKPmXnY...
+2025-11-27 03:41:51,109 - INFO - 127.0.0.1 - - [27/Nov/2025 03:41:51] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:41:59,713 - INFO - Reflex Analysis: 0.550 (Frames: 258)
+2025-11-27 03:41:59,713 - INFO - Session verified: 300 frames, 3 oscillations
+2025-11-27 03:41:59,714 - INFO - 127.0.0.1 - - [27/Nov/2025 03:41:59] "POST /verify_stability HTTP/1.1" 200 -
+2025-11-27 03:42:01,306 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:01] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:01,321 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:01] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:01,326 - INFO - Session created: MdfsVx9z...
+2025-11-27 03:42:01,327 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:01] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:03,389 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:03] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:03,405 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:03] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:03,409 - INFO - Session created: utDeGOyN...
+2025-11-27 03:42:03,410 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:03] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:07,643 - INFO - Reflex Analysis: 0.548 (Frames: 290)
+2025-11-27 03:42:07,643 - INFO - Session verified: 300 frames, 2 oscillations
+2025-11-27 03:42:07,643 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:07] "POST /verify_stability HTTP/1.1" 200 -
+2025-11-27 03:42:08,505 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:08] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:08,517 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:08] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:08,523 - INFO - Session created: h_r99nNM...
+2025-11-27 03:42:08,524 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:08] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:13,254 - INFO - Reflex Analysis: 0.208 (Frames: 283)
+2025-11-27 03:42:13,254 - INFO - Session verified: 300 frames, 3 oscillations
+2025-11-27 03:42:13,255 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:13] "POST /verify_stability HTTP/1.1" 200 -
+2025-11-27 03:42:14,438 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:14] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:14,450 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:14] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:14,458 - INFO - Session created: jgdiWiIQ...
+2025-11-27 03:42:14,459 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:14] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:17,930 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:17] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:17,947 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:17] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:17,951 - INFO - Session created: NBBbWtvt...
+2025-11-27 03:42:17,952 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:17] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:22,504 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:22] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:22,517 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:22] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:22,524 - INFO - Session created: dTtKcu5I...
+2025-11-27 03:42:22,525 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:22] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:24,987 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:24] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:25,000 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:25] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:25,008 - INFO - Session created: spUJ7Ugj...
+2025-11-27 03:42:25,008 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:25] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:28,030 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:28] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:28,051 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:28] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:28,055 - INFO - Session created: QRYH28t7...
+2025-11-27 03:42:28,056 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:28] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:30,654 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:30] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:30,667 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:30] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:30,675 - INFO - Session created: sJDnUEo8...
+2025-11-27 03:42:30,676 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:30] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-11-27 03:42:34,370 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:34] "GET /captcha HTTP/1.1" 200 -
+2025-11-27 03:42:34,383 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:34] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-11-27 03:42:34,390 - INFO - Session created: ko4mAGS2...
+2025-11-27 03:42:34,391 - INFO - 127.0.0.1 - - [27/Nov/2025 03:42:34] "GET /init_stabilizer HTTP/1.1" 200 -

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reactor Access - Login</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Courier New", monospace;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #e0e0e0;
+      }
+      .login-container {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 40px;
+        width: 400px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .logo h1 {
+        font-size: 24px;
+        color: #00ffff;
+        margin-bottom: 5px;
+        letter-spacing: 2px;
+      }
+      .logo p {
+        font-size: 12px;
+        color: #888;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #aaa;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 4px;
+        color: #fff;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        transition: all 0.3s;
+      }
+      input:focus {
+        outline: none;
+        border-color: #00ffff;
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .error-message {
+        color: #ff4444;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+      }
+      .error-message.show {
+        display: block;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #00ffff 0%, #0099ff 100%);
+        border: none;
+        border-radius: 4px;
+        color: #000;
+        font-family: "Courier New", monospace;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 10px;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .info {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(0, 255, 255, 0.1);
+        border-left: 3px solid #00ffff;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .info strong {
+        color: #00ffff;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .loading {
+        animation: pulse 1.5s infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="logo">
+        <h1>⚛ REACTOR ACCESS</h1>
+        <p>Stabilization System Login</p>
+      </div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="operator@reactor.sys"
+            required
+          />
+          <div class="error-message" id="emailError">
+            Please enter a valid email address
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Access Code</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Enter your access code"
+            required
+          />
+          <div class="error-message" id="passwordError">
+            Access code is required
+          </div>
+        </div>
+
+        <button type="submit" id="loginBtn">ACCESS REACTOR SYSTEM</button>
+      </form>
+
+      <div class="info">
+        <strong>NOTICE:</strong> You will be required to stabilize a reactor by
+        balancing an inverted pendulum. Keep the pole upright for 5 seconds to
+        verify you are human.
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("loginForm");
+      const emailInput = document.getElementById("email");
+      const passwordInput = document.getElementById("password");
+      const emailError = document.getElementById("emailError");
+      const passwordError = document.getElementById("passwordError");
+      const loginBtn = document.getElementById("loginBtn");
+
+      function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+      }
+
+      emailInput.addEventListener("input", () => {
+        emailError.classList.remove("show");
+      });
+      passwordInput.addEventListener("input", () => {
+        passwordError.classList.remove("show");
+      });
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        let hasError = false;
+
+        if (!email || !isValidEmail(email)) {
+          emailError.classList.add("show");
+          hasError = true;
+        }
+        if (!password) {
+          passwordError.classList.add("show");
+          hasError = true;
+        }
+
+        if (hasError) return;
+
+        // Session Logic
+        sessionStorage.setItem("reactor_email", email);
+        sessionStorage.setItem("reactor_logged_in", "true");
+
+        loginBtn.textContent = "ACCESSING...";
+        loginBtn.classList.add("loading");
+        loginBtn.disabled = true;
+
+        setTimeout(() => {
+          // This redirects to the route defined in app.py
+          window.location.href = "/captcha";
+        }, 500);
+      });
+    </script>
+  </body>
+</html>
