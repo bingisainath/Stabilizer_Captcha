@@ -325,7 +325,7 @@ class RLAttacker:
 if __name__ == "__main__":
     
     # 1. Create the Attacker
-    bot = RLAttacker(train_episodes=20)
+    bot = RLAttacker(train_episodes=100)
     
     # 2. Decide: Train or Attack?
     # By default, we try to load. If fail, we train, then attack.

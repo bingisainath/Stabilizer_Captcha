@@ -134,10 +134,10 @@ def analyze_behavior_pattern(angle_history, cart_history):
     reasons = []
 
 # Check 1: Input Roughness (Entropy)
-    if input_roughness < 0.1:
+    if input_roughness < 0.4:
         bot_score += 60
         reasons.append(f"Mechanical Smoothness (Roughness: {input_roughness:.2f})")
-    elif input_roughness > 1.5:
+    elif input_roughness > 1.2:
         bot_score += 30
         reasons.append("Excessive Input Noise / Artificial Jitter")
 
@@ -146,7 +146,7 @@ def analyze_behavior_pattern(angle_history, cart_history):
         bot_score += 50
         reasons.append(f"High Latency Response (Lag: {estimated_lag}f)")
     elif estimated_lag < 1:
-        bot_score += 30
+        bot_score += 50
         reasons.append(f"Predictive/Instant Reaction (Lag: {estimated_lag}f)")
 
     # Check 3: Speed Analysis (Updated)
@@ -281,7 +281,7 @@ def verify_stability():
          return fail('Failed: Reactor crashed at the finish line.')
 
     # 3. AI Probability Check (UPDATED)
-    if ai_pct > human_pct: 
+    if ai_pct >= human_pct: 
         return fail('Try again (Likely Bot)')
 
     # Success Case
