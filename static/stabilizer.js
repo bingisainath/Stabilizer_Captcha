@@ -37,6 +37,7 @@ let state = {
   mouseInCanvas: false,
   frameCount: 0,
   angleHistory: [],
+  cartHistory: [], // [NEW] Track human input for backend analysis
   currentGravity: 0.5,
   currentLength: 100,
   currentJolt: 0,
@@ -52,7 +53,6 @@ const attemptsDisplay = document.getElementById("attemptsDisplay");
 const clickPrompt = document.getElementById("clickPrompt");
 const verifyBtn = document.getElementById("verifyBtn");
 const retryBtn = document.getElementById("retryBtn");
-// Motivation Overlay
 const motivationOverlay = document.getElementById("motivationalOverlay");
 
 // ==================== INITIALIZATION ====================
@@ -64,7 +64,6 @@ async function initGame() {
     const response = await fetch("/init_stabilizer");
     const data = await response.json();
 
-    // CHECK FOR LOCKOUT
     if (data.error === 'MAX_ATTEMPTS_EXCEEDED' && data.redirect) {
         window.location.href = data.redirect;
         return;
@@ -74,7 +73,6 @@ async function initGame() {
       throw new Error("Failed to initialize");
     }
 
-    // UPDATE UI WITH ATTEMPTS LEFT
     if (attemptsDisplay && data.attempts_left !== undefined) {
         attemptsDisplay.textContent = "Attempts Left: " + data.attempts_left;
         if(data.attempts_left <= 1) attemptsDisplay.style.color = "#ff3333";
@@ -107,9 +105,15 @@ function updatePhysics() {
   state.currentLength = state.schedule.length[frame];
   state.currentJolt = state.schedule.force_jolts[frame];
 
+  // [FIX] Update Cart Position INSIDE physics loop to ensure sync
+  const targetX = Math.max(CONFIG.cartWidth / 2, Math.min(CONFIG.canvasWidth - CONFIG.cartWidth / 2, state.mouseX));
+  state.cartX = targetX;
+
+  // Calculate Acceleration (The force applied by user)
   const cartAcceleration = state.cartX - state.prevCartX;
   state.prevCartX = state.cartX;
 
+  // Physics Calc
   const gravityTorque = (state.currentGravity / state.currentLength) * Math.sin(state.poleAngle);
   const inertialTorque = ((-CONFIG.cartForceMultiplier * cartAcceleration) / state.currentLength) * Math.cos(state.poleAngle);
   const angularAcceleration = gravityTorque + inertialTorque + state.currentJolt;
@@ -118,7 +122,9 @@ function updatePhysics() {
   state.angularVelocity *= CONFIG.dampingFactor;
   state.poleAngle += state.angularVelocity;
 
+  // [NEW] Record both Angle and Cart position for Cross-Correlation
   state.angleHistory.push(state.poleAngle);
+  state.cartHistory.push(state.cartX);
   state.frameCount++;
 
   if (Math.abs(state.poleAngle) > CONFIG.failAngle) {
@@ -151,19 +157,20 @@ function setupInputHandlers() {
 }
 
 function startGame() {
+  // Sync state immediately on start
   state.cartX = state.mouseX;
   state.prevCartX = state.mouseX;
+  
   state.poleAngle = 0.05 * (Math.random() > 0.5 ? 1 : -1);
   state.angularVelocity = 0;
   state.frameCount = 0;
   state.angleHistory = [];
+  state.cartHistory = []; // Reset history
   state.running = true;
   state.gameOver = false;
   state.success = false;
 
   clickPrompt.style.display = "none";
-  
-  // SHOW MOTIVATION
   if(motivationOverlay) motivationOverlay.style.display = "block";
 
   statusEl.className = "active";
@@ -178,7 +185,6 @@ function endGame(success) {
   state.gameOver = true;
   state.success = success;
 
-  // HIDE MOTIVATION
   if(motivationOverlay) motivationOverlay.style.display = "none";
 
   if (success) {
@@ -186,7 +192,6 @@ function endGame(success) {
     statusEl.textContent = "STABILIZED // VERIFICATION REQUIRED";
     verifyBtn.classList.add("visible");
   } else {
-    // AUTO-REPORT FAILURE
     statusEl.className = "failed";
     statusEl.textContent = "CRITICAL FAILURE // SYNCING WITH SERVER...";
     verifyHuman(); 
@@ -207,12 +212,12 @@ async function verifyHuman() {
       body: JSON.stringify({
         session_token: state.sessionToken,
         angle_history: state.angleHistory,
+        cart_history: state.cartHistory // [NEW] Send Cart Data
       }),
     });
 
     const data = await response.json();
 
-    // 1. PRINT METRICS TO CONSOLE
     if (data.metrics) {
         console.group("%c 🧬 VERIFICATION METRICS ", "background: #222; color: #00ffff; font-size: 14px");
         console.log(`%c Human Probability: ${data.metrics.human}% `, "color: #00ff41; font-weight: bold;");
@@ -220,7 +225,6 @@ async function verifyHuman() {
         console.groupEnd();
     }
 
-    // 2. REAL-TIME ATTEMPTS UPDATE
     if (data.attempts_left !== undefined) {
         if (attemptsDisplay) {
             attemptsDisplay.textContent = "Attempts Left: " + data.attempts_left;
@@ -231,13 +235,11 @@ async function verifyHuman() {
     if (data.verified) {
       window.location.href = data.redirect || "/success";
     } else {
-      // CHECK LOCKOUT
       if (data.redirect) {
           window.location.href = data.redirect;
           return;
       }
 
-      // SHOW RESULT OVERLAY
       if (typeof window.showResult === "function") {
         const msg = `${data.message}`; 
         window.showResult(data.verified, msg, data.stats);
@@ -262,6 +264,7 @@ async function resetGame() {
   state.success = false;
   state.frameCount = 0;
   state.angleHistory = [];
+  state.cartHistory = [];
   state.poleAngle = 0.05;
   state.angularVelocity = 0;
   state.cartX = CONFIG.canvasWidth / 2;
@@ -293,9 +296,13 @@ function render() {
   ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(CONFIG.canvasWidth, groundY); ctx.stroke();
 
-  // Cart
-  const targetX = Math.max(CONFIG.cartWidth / 2, Math.min(CONFIG.canvasWidth - CONFIG.cartWidth / 2, state.mouseX));
-  if (!state.running) { state.cartX = targetX; state.prevCartX = targetX; } else { state.cartX = targetX; }
+  // Cart (Use state.cartX directly as it is now authoritative)
+  // For non-running preview, we update cartX manually to mouse
+  if (!state.running) {
+     const targetX = Math.max(CONFIG.cartWidth / 2, Math.min(CONFIG.canvasWidth - CONFIG.cartWidth / 2, state.mouseX));
+     state.cartX = targetX;
+  }
+  
   const cartY = groundY - CONFIG.cartHeight;
 
   ctx.fillStyle = CONFIG.cartColor;

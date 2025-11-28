@@ -31,7 +31,6 @@ SESSION_TIMEOUT = 600
 
 # CONFIGURATION
 FRAME_COUNT = 300 
-# Strict threshold: Must last ~4.7s of the 5s to pass (allow small network/render lag)
 PASS_FRAME_THRESHOLD = FRAME_COUNT - 20 
 MAX_ATTEMPTS = 3 
 
@@ -73,99 +72,103 @@ def generate_force_jolts(frame_count):
                     jolts[jolt_frame + decay] = jolts[jolt_frame] * (0.5 ** decay)
     return jolts
 
-def calculate_variance(values):
-    if not values: return 0
-    mean = sum(values) / len(values)
-    return sum((x - mean) ** 2 for x in values) / len(values)
-
 # =========================================================
 #  BEHAVIORAL ANALYSIS ENGINE
 # =========================================================
-def analyze_behavior_pattern(angle_history):
+def analyze_behavior_pattern(angle_history, cart_history):
     """
-    Advanced heuristic analysis of physics data to determine Bot vs Human.
-    Returns: (ai_probability, human_probability, details_dict)
+    Revised Analysis.
+    Uses Cart Velocity vs Angle Correlation (Reaction Time) and Input Entropy.
     """
-    if not angle_history or len(angle_history) < 10:
+    if not angle_history or len(angle_history) < 20 or not cart_history:
         return 0, 100, {"error": "insufficient_data"}
 
-    # --- 1. PRE-CALCULATE DERIVATIVES ---
-    # Velocity: Change in angle per frame
-    velocity = [angle_history[i] - angle_history[i-1] for i in range(1, len(angle_history))]
-    
-    # --- 2. CALCULATE METRICS ---
+    # --- 1. DERIVATIVES ---
+    # Cart Velocity: How fast the user moved the mouse
+    cart_velocity = [cart_history[i] - cart_history[i-1] for i in range(1, len(cart_history))]
+    # Cart Acceleration (Jerk/Entropy): How "shaky" the movement was
+    cart_accel = [cart_velocity[i] - cart_velocity[i-1] for i in range(1, len(cart_velocity))]
 
-    # A. Total Distance (Effort)
-    # Bots hold position efficiently (low distance). Humans constantly micro-correct (high distance).
-    total_distance = sum(abs(v) for v in velocity)
-    
-    # B. Micro-Oscillations (PID Shake)
-    # PID controllers often flip velocity direction every frame (zigzag).
-    velocity_flips = sum(1 for i in range(1, len(velocity)) if velocity[i] * velocity[i-1] < 0)
-    flip_ratio = velocity_flips / len(velocity) if len(velocity) > 0 else 0
+    # --- 2. METRICS ---
 
-    # C. Reaction Latency (The "Biological Delay")
-    # Bots react in 1 frame. Humans react in 10-20 frames (approx 200ms).
-    correction_lags = []
-    frames_since_deviation = 0
+    # A. Input Entropy (The "Hand Tremor" Check)
+    input_roughness = sum(abs(a) for a in cart_accel) / len(cart_accel) if cart_accel else 0
+
+    # B. Reaction Lag (The "Biological Delay" Check)
+    # Check Cross-Correlation between Angle (Problem) and Cart Velocity (Solution).
+    best_correlation = -1
+    estimated_lag = 0
     
-    for i in range(len(angle_history)):
-        val = angle_history[i]
-        if abs(val) > 0.01: # Threshold for "needs correction"
-            frames_since_deviation += 1
-            # If velocity opposes angle, they are correcting
-            if i > 0 and (val * velocity[i-1] < 0):
-                correction_lags.append(frames_since_deviation)
-                frames_since_deviation = 0
-        else:
-            frames_since_deviation = 0
+    # Normalize for correlation calculation
+    def normalize(data):
+        mean = sum(data) / len(data)
+        std = (sum((x - mean) ** 2 for x in data) / len(data)) ** 0.5
+        if std == 0: return [0] * len(data)
+        return [(x - mean) / std for x in data]
+
+    # Use a slice of the data to avoid startup transients
+    sample_size = min(len(angle_history), len(cart_velocity)) - 10
+    if sample_size > 50:
+        angle_sample = normalize(angle_history[10:10+sample_size])
+        vel_sample = normalize(cart_velocity[10:10+sample_size])
+
+        # Check lags from 0 to 25 frames
+        for lag in range(0, 25):
+            dot_product = 0
+            count = 0
+            for i in range(len(angle_sample) - lag):
+                dot_product += angle_sample[i] * vel_sample[i + lag]
+                count += 1
             
-    avg_reaction_frames = sum(correction_lags) / len(correction_lags) if correction_lags else 0
+            corr = dot_product / count if count > 0 else 0
+            
+            if corr > best_correlation:
+                best_correlation = corr
+                estimated_lag = lag
 
-    # D. Uniformity (Variance)
-    # Deadbots or static scripts have near-zero variance.
-    vel_variance = calculate_variance(velocity)
-
-    # --- 3. SCORING LOGIC (0 = Human, 100 = Bot) ---
+    # C. Efficiency (The "Lazy Bot" Check)
+    total_distance = sum(abs(v) for v in cart_velocity)
+    
+    # --- 3. SCORING ---
     bot_score = 0
     reasons = []
 
-    # Check 1: Superhuman Stability (Variance)
-    if vel_variance < 1e-7:
-        bot_score += 100
-        reasons.append("Zero Variance (Static)")
-    elif vel_variance < 1e-5:
-        bot_score += 40
-        reasons.append("Low Variance (Robotic Precision)")
-
-    # Check 2: The "PID Shake" (Flip Ratio)
-    # If direction flips > 60% of frames, it's likely a high-frequency PID controller
-    if flip_ratio > 0.60:
-        bot_score += 50
-        reasons.append(f"High Frequency Oscillation ({flip_ratio:.2f})")
-    
-    # Check 3: Reaction Time
-    # If average reaction is < 3 frames (50ms), it's superhuman.
-    if avg_reaction_frames < 3 and avg_reaction_frames > 0:
+# Check 1: Input Roughness (Entropy)
+    if input_roughness < 0.1:
         bot_score += 60
-        reasons.append(f"Instant Reaction ({avg_reaction_frames:.1f} frames)")
-    
-    # Check 4: Efficiency (Total Distance)
-    # If they moved the pole VERY little over 5 seconds, it's suspicious.
-    if total_distance < 0.5: # Tuned threshold
+        reasons.append(f"Mechanical Smoothness (Roughness: {input_roughness:.2f})")
+    elif input_roughness > 1.5:
         bot_score += 30
-        reasons.append("Unnatural Efficiency")
+        reasons.append("Excessive Input Noise / Artificial Jitter")
 
-    # Final Clamping
+    # Check 2: Reaction Lag
+    if estimated_lag > 5:
+        bot_score += 50
+        reasons.append(f"High Latency Response (Lag: {estimated_lag}f)")
+    elif estimated_lag < 1:
+        bot_score += 30
+        reasons.append(f"Predictive/Instant Reaction (Lag: {estimated_lag}f)")
+
+    # Check 3: Speed Analysis (Updated)
+    avg_speed = total_distance / len(cart_velocity)
+    
+    if avg_speed < 0.2:
+        # Too efficient (Lazy Bot)
+        bot_score += 40
+        reasons.append(f"Unnatural Efficiency (Speed: {avg_speed:.2f})")
+    elif avg_speed > 1.5:
+        # Too erratic/fast (Shaker Bot)
+        bot_score += 40
+        reasons.append(f"Erratic/High Speed (Speed: {avg_speed:.2f})")
+        
+    # Final Probability
     final_ai_prob = min(100, max(0, bot_score))
     final_human_prob = 100 - final_ai_prob
 
     details = {
-        "total_distance": round(total_distance, 4),
-        "avg_velocity": round(sum(abs(v) for v in velocity)/len(velocity) if velocity else 0, 5),
-        "velocity_flip_ratio": round(flip_ratio, 2),
-        "avg_reaction_frames": round(avg_reaction_frames, 1),
-        "variance": f"{vel_variance:.2e}",
+        "input_roughness": round(input_roughness, 3),
+        "estimated_lag": estimated_lag,
+        "avg_speed": round(avg_speed, 3),
         "reasons": reasons
     }
 
@@ -228,20 +231,24 @@ def verify_stability():
         return jsonify({'success': False, 'verified': False}), 400
 
     token = data['session_token']
-    history = data.get('angle_history', [])
+    angle_history = data.get('angle_history', [])
+    cart_history = data.get('cart_history', []) 
     
     if token not in active_sessions:
         return jsonify({'success': False, 'verified': False, 'message': 'Session Expired'}), 403
     del active_sessions[token]
 
-    # --- RUN BEHAVIOR ANALYSIS ---
-    ai_pct, human_pct, details = analyze_behavior_pattern(history)
+    # Fallback if client is using cached old JS
+    if not cart_history:
+        cart_history = [0] * len(angle_history)
+    
+    ai_pct, human_pct, details = analyze_behavior_pattern(angle_history, cart_history)
     
     # --- LOGGING ---
     logger.info("="*50)
     logger.info(f"VERIFICATION ATTEMPT - Session: {token[:8]}...")
     logger.info(f"PROBABILITY :: Human: {human_pct}% | Bot: {ai_pct}%")
-    logger.info(f"METRICS     :: Dist: {details.get('total_distance')} | Reaction: {details.get('avg_reaction_frames')}f | Flips: {details.get('velocity_flip_ratio')}")
+    logger.info(f"METRICS     :: Lag: {details.get('estimated_lag')}f | Roughness: {details.get('input_roughness')} | Speed: {details.get('avg_speed')}")
     logger.info(f"FLAGS       :: {details.get('reasons')}")
     logger.info("="*50)
 
@@ -265,22 +272,21 @@ def verify_stability():
         return jsonify(response)
 
     # 1. Survival Check
-    if len(history) < PASS_FRAME_THRESHOLD:
-        duration_sec = len(history) / 60
+    if len(angle_history) < PASS_FRAME_THRESHOLD:
+        duration_sec = len(angle_history) / 60
         return fail(f'Failed: Lasted {duration_sec:.1f}s / 5.0s')
 
-    # 2. Crash Check (Final Angle)
-    if len(history) > 0 and abs(history[-1]) > 1.4:
+    # 2. Crash Check
+    if len(angle_history) > 0 and abs(angle_history[-1]) > 1.4:
          return fail('Failed: Reactor crashed at the finish line.')
 
-    # 3. AI Probability Check
-    if ai_pct > 80: 
-        return fail('Anomaly: Non-biological movement detected.')
+    # 3. AI Probability Check (UPDATED)
+    if ai_pct > human_pct: 
+        return fail('Try again (Likely Bot)')
 
     # Success Case
     session['verified'] = True
-    sign_changes = sum(1 for i in range(1, len(history)) if history[i] * history[i-1] < 0)
-    max_angle = max(abs(a) for a in history) if history else 0
+    max_angle = max(abs(a) for a in angle_history) if angle_history else 0
     
     logger.info("SUCCESS: User verified as Human.")
 
@@ -290,7 +296,7 @@ def verify_stability():
         'redirect': '/success',
         'metrics': metrics,
         'stats': {
-            'duration': len(history) / 60,
+            'duration': len(angle_history) / 60,
             'max_deviation': math.degrees(max_angle),
             'stability_score': min(100, int(100 * (1 - max_angle / 1.2)))
         }
