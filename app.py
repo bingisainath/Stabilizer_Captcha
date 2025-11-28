@@ -1,15 +1,10 @@
-"""
-Production Reactor Stabilizer CAPTCHA
-"""
-
 import random
 import math
 import os
 import logging
 import secrets
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, request, render_template
-from functools import wraps
+from flask import Flask, jsonify, request, render_template, session, redirect, url_for
 
 try:
     import numpy as np
@@ -21,79 +16,53 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(BASE_DIR, '../logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# Logging
+# Configure Logger to print to console immediately
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(LOG_DIR, 'captcha.log')),
-        logging.StreamHandler()
-    ]
+    format='%(asctime)s | %(levelname)s | %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-# Active sessions with expiry
 active_sessions = {}
-SESSION_TIMEOUT = 600  # 10 minutes
+SESSION_TIMEOUT = 600
 
-# Configuration
-FRAME_COUNT = 300
-MIN_SURVIVAL_FRAMES = 150
-PERFECT_ANGLE_THRESHOLD = 0.001
-MAX_PERFECT_FRAMES = 30
-
+# CONFIGURATION
+FRAME_COUNT = 300 
+PASS_FRAME_THRESHOLD = FRAME_COUNT - 20 
+MAX_ATTEMPTS = 3 
 
 def cleanup_expired_sessions():
-    """Remove expired sessions"""
     now = datetime.now()
     expired = [token for token, data in active_sessions.items() 
                if now - data.get('created', now) > timedelta(seconds=SESSION_TIMEOUT)]
     for token in expired:
         del active_sessions[token]
-    if expired:
-        logger.info(f"Cleaned up {len(expired)} expired sessions")
 
-
-def lerp(start: float, end: float, t: float) -> float:
+def lerp(start, end, t):
     return start + (end - start) * t
 
-
-def generate_smooth_parameter_schedule(min_val: float, max_val: float, 
-                                      frame_count: int, num_keyframes: int = 5) -> list:
-    keyframe_positions = sorted([0] + random.sample(range(1, frame_count - 1), 
-                                                     num_keyframes - 2) + [frame_count - 1])
+def generate_smooth_parameter_schedule(min_val, max_val, frame_count, num_keyframes=5):
+    keyframe_positions = sorted([0] + random.sample(range(1, frame_count - 1), num_keyframes - 2) + [frame_count - 1])
     keyframe_values = [random.uniform(min_val, max_val) for _ in range(num_keyframes)]
-    
     schedule = []
     keyframe_idx = 0
-    
     for frame in range(frame_count):
-        while keyframe_idx < len(keyframe_positions) - 1 and \
-              frame >= keyframe_positions[keyframe_idx + 1]:
+        while keyframe_idx < len(keyframe_positions) - 1 and frame >= keyframe_positions[keyframe_idx + 1]:
             keyframe_idx += 1
-        
         if keyframe_idx >= len(keyframe_positions) - 1:
             schedule.append(keyframe_values[-1])
         else:
-            start_frame = keyframe_positions[keyframe_idx]
-            end_frame = keyframe_positions[keyframe_idx + 1]
+            start_frame, end_frame = keyframe_positions[keyframe_idx], keyframe_positions[keyframe_idx + 1]
             t = (frame - start_frame) / (end_frame - start_frame) if end_frame != start_frame else 0
-            
-            start_val = keyframe_values[keyframe_idx]
-            end_val = keyframe_values[keyframe_idx + 1]
-            schedule.append(lerp(start_val, end_val, t))
-    
+            schedule.append(lerp(keyframe_values[keyframe_idx], keyframe_values[keyframe_idx + 1], t))
     return schedule
 
-
-def generate_force_jolts(frame_count: int) -> list:
+def generate_force_jolts(frame_count):
     jolts = [0.0] * frame_count
     jolt_interval = random.randint(70, 100)
-    
     for i in range(0, frame_count, jolt_interval):
         jolt_frame = i + random.randint(0, min(20, frame_count - i - 1))
         if jolt_frame < frame_count:
@@ -101,228 +70,238 @@ def generate_force_jolts(frame_count: int) -> list:
             for decay in range(1, 5):
                 if jolt_frame + decay < frame_count:
                     jolts[jolt_frame + decay] = jolts[jolt_frame] * (0.5 ** decay)
-    
     return jolts
 
+# =========================================================
+#  BEHAVIORAL ANALYSIS ENGINE
+# =========================================================
+def analyze_behavior_pattern(angle_history, cart_history):
+    """
+    Revised Analysis.
+    Uses Cart Velocity vs Angle Correlation (Reaction Time) and Input Entropy.
+    """
+    if not angle_history or len(angle_history) < 20 or not cart_history:
+        return 0, 100, {"error": "insufficient_data"}
 
-def calculate_variance(values):
-    if len(values) == 0:
-        return 0
-    mean = sum(values) / len(values)
-    return sum((x - mean) ** 2 for x in values) / len(values)
+    # --- 1. DERIVATIVES ---
+    # Cart Velocity: How fast the user moved the mouse
+    cart_velocity = [cart_history[i] - cart_history[i-1] for i in range(1, len(cart_history))]
+    # Cart Acceleration (Jerk/Entropy): How "shaky" the movement was
+    cart_accel = [cart_velocity[i] - cart_velocity[i-1] for i in range(1, len(cart_velocity))]
 
+    # --- 2. METRICS ---
 
-def calculate_mean(values):
-    return sum(values) / len(values) if len(values) > 0 else 0
+    # A. Input Entropy (The "Hand Tremor" Check)
+    input_roughness = sum(abs(a) for a in cart_accel) / len(cart_accel) if cart_accel else 0
 
+    # B. Reaction Lag (The "Biological Delay" Check)
+    # Check Cross-Correlation between Angle (Problem) and Cart Velocity (Solution).
+    best_correlation = -1
+    estimated_lag = 0
+    
+    # Normalize for correlation calculation
+    def normalize(data):
+        mean = sum(data) / len(data)
+        std = (sum((x - mean) ** 2 for x in data) / len(data)) ** 0.5
+        if std == 0: return [0] * len(data)
+        return [(x - mean) / std for x in data]
+
+    # Use a slice of the data to avoid startup transients
+    sample_size = min(len(angle_history), len(cart_velocity)) - 10
+    if sample_size > 50:
+        angle_sample = normalize(angle_history[10:10+sample_size])
+        vel_sample = normalize(cart_velocity[10:10+sample_size])
+
+        # Check lags from 0 to 25 frames
+        for lag in range(0, 25):
+            dot_product = 0
+            count = 0
+            for i in range(len(angle_sample) - lag):
+                dot_product += angle_sample[i] * vel_sample[i + lag]
+                count += 1
+            
+            corr = dot_product / count if count > 0 else 0
+            
+            if corr > best_correlation:
+                best_correlation = corr
+                estimated_lag = lag
+
+    # C. Efficiency (The "Lazy Bot" Check)
+    total_distance = sum(abs(v) for v in cart_velocity)
+    
+    # --- 3. SCORING ---
+    bot_score = 0
+    reasons = []
+
+# Check 1: Input Roughness (Entropy)
+    if input_roughness < 0.1:
+        bot_score += 60
+        reasons.append(f"Mechanical Smoothness (Roughness: {input_roughness:.2f})")
+    elif input_roughness > 1.5:
+        bot_score += 30
+        reasons.append("Excessive Input Noise / Artificial Jitter")
+
+    # Check 2: Reaction Lag
+    if estimated_lag > 5:
+        bot_score += 50
+        reasons.append(f"High Latency Response (Lag: {estimated_lag}f)")
+    elif estimated_lag < 1:
+        bot_score += 30
+        reasons.append(f"Predictive/Instant Reaction (Lag: {estimated_lag}f)")
+
+    # Check 3: Speed Analysis (Updated)
+    avg_speed = total_distance / len(cart_velocity)
+    
+    if avg_speed < 0.2:
+        # Too efficient (Lazy Bot)
+        bot_score += 40
+        reasons.append(f"Unnatural Efficiency (Speed: {avg_speed:.2f})")
+    elif avg_speed > 1.5:
+        # Too erratic/fast (Shaker Bot)
+        bot_score += 40
+        reasons.append(f"Erratic/High Speed (Speed: {avg_speed:.2f})")
+        
+    # Final Probability
+    final_ai_prob = min(100, max(0, bot_score))
+    final_human_prob = 100 - final_ai_prob
+
+    details = {
+        "input_roughness": round(input_roughness, 3),
+        "estimated_lag": estimated_lag,
+        "avg_speed": round(avg_speed, 3),
+        "reasons": reasons
+    }
+
+    return final_ai_prob, final_human_prob, details
+
+# --- ROUTES ---
 
 @app.route('/')
 def index():
+    session.clear()
     return render_template('login.html')
-
 
 @app.route('/captcha')
 def captcha():
+    if session.get('attempts', 0) >= MAX_ATTEMPTS:
+        return redirect(url_for('failed_page'))
     return render_template('captcha.html')
 
+@app.route('/success')
+def success_page():
+    if not session.get('verified', False):
+        return redirect(url_for('index'))
+    return render_template('success.html')
+
+@app.route('/failed')
+def failed_page():
+    return render_template('failed.html')
 
 @app.route('/init_stabilizer', methods=['GET'])
 def init_stabilizer():
-    try:
-        cleanup_expired_sessions()
-        
-        gravity_schedule = generate_smooth_parameter_schedule(0.10, 0.25, FRAME_COUNT, 10)
-        length_schedule = generate_smooth_parameter_schedule(120.0, 100.0, FRAME_COUNT, 8)
-        force_jolts = generate_force_jolts(FRAME_COUNT)
-        
-        session_token = secrets.token_urlsafe(32)
-        
-        active_sessions[session_token] = {
-            'gravity': gravity_schedule,
-            'length': length_schedule,
-            'force_jolts': force_jolts,
-            'created': datetime.now()
-        }
-        
-        logger.info(f"Session created: {session_token[:8]}...")
-        
-        return jsonify({
-            'success': True,
-            'session_token': session_token,
-            'frame_count': FRAME_COUNT,
-            'target_fps': 60,
-            'schedule': {
-                'gravity': gravity_schedule,
-                'length': length_schedule,
-                'force_jolts': force_jolts
-            },
-            'config': {
-                'canvas_width': 600,
-                'canvas_height': 400,
-                'cart_width': 60,
-                'cart_height': 20,
-                'fail_angle': 1.4,
-                'success_frames': FRAME_COUNT
-            }
-        })
-    except Exception as e:
-        logger.error(f"Error initializing: {e}")
-        return jsonify({'success': False, 'error': 'Initialization failed'}), 500
+    cleanup_expired_sessions()
+    
+    if 'attempts' not in session:
+        session['attempts'] = 0
 
+    current_attempts = session.get('attempts', 0)
+    if current_attempts >= MAX_ATTEMPTS:
+        return jsonify({'success': False, 'error': 'MAX_ATTEMPTS_EXCEEDED', 'redirect': '/failed'})
+
+    gravity = generate_smooth_parameter_schedule(0.10, 0.25, FRAME_COUNT, 10)
+    length = generate_smooth_parameter_schedule(120.0, 100.0, FRAME_COUNT, 8)
+    jolts = generate_force_jolts(FRAME_COUNT)
+    token = secrets.token_urlsafe(32)
+    
+    active_sessions[token] = {'gravity': gravity, 'length': length, 'force_jolts': jolts, 'created': datetime.now()}
+    
+    return jsonify({
+        'success': True,
+        'session_token': token,
+        'attempts_left': MAX_ATTEMPTS - current_attempts,
+        'schedule': {'gravity': gravity, 'length': length, 'force_jolts': jolts}
+    })
 
 @app.route('/verify_stability', methods=['POST'])
 def verify_stability():
-    try:
-        data = request.get_json()
-        
-        # 1. Basic Validation
-        if not data or 'angle_history' not in data or 'session_token' not in data:
-            logger.warning("Missing required data in verification")
-            return jsonify({
-                'success': False,
-                'verified': False,
-                'message': 'SYSTEM ERROR: Missing required data.'
-            }), 400
-        
-        session_token = data['session_token']
-        angle_history = data['angle_history']
-        
-        # 2. Session Validation
-        cleanup_expired_sessions()
-        
-        if session_token not in active_sessions:
-            logger.warning(f"Invalid session token: {session_token[:8]}...")
-            return jsonify({
-                'success': False,
-                'verified': False,
-                'message': 'SYSTEM ERROR: Invalid or expired session.'
-            }), 403
-        
-        # Consume the token (One-time use)
-        del active_sessions[session_token]
-        
-        # 3. Survival Check (Did they last 5 seconds?)
-        if len(angle_history) < MIN_SURVIVAL_FRAMES:
-            logger.info(f"Session failed: Too short ({len(angle_history)} frames)")
-            return jsonify({
-                'success': True,
-                'verified': False,
-                'message': f'STABILIZATION FAILED: Reactor unstable after {len(angle_history) / 60:.1f} seconds.'
-            })
-        
-        # 4. Variance Check (Anti-Static / Dead Bot)
-        # Bots that crash or hold perfectly still have weird variance profiles.
-        if len(angle_history) >= 2:
-            angle_changes = [abs(angle_history[i] - angle_history[i-1]) 
-                           for i in range(1, len(angle_history))]
-            
-            if np is not None:
-                variance = np.var(angle_changes)
-                mean_change = np.mean(angle_changes)
-            else:
-                variance = calculate_variance(angle_changes)
-                mean_change = calculate_mean(angle_changes)
-            
-            if variance < 1e-10 and mean_change < 1e-8:
-                logger.info("Session failed: Pattern too uniform")
-                return jsonify({
-                    'success': True,
-                    'verified': False,
-                    'message': 'ANOMALY DETECTED: Input pattern too uniform.'
-                })
-        
-        # 5. Perfection Check (Anti-Bot)
-        # Humans cannot hold the angle at exactly 0.000 for long periods.
-        perfect_count = sum(1 for angle in angle_history if abs(angle) < PERFECT_ANGLE_THRESHOLD)
-        if perfect_count > MAX_PERFECT_FRAMES:
-            logger.info("Session failed: Too precise")
-            return jsonify({
-                'success': True,
-                'verified': False,
-                'message': 'ANOMALY DETECTED: Impossibly precise stabilization detected.'
-            })
+    data = request.get_json()
+    if 'attempts' not in session: session['attempts'] = 0
+    
+    if not data or 'session_token' not in data:
+        return jsonify({'success': False, 'verified': False}), 400
 
-        # 6. The "Reflex Trap" (Anti-PID Check) - NEW
-        # We calculate the "Reflex Ratio".
-        # PID bots correct errors frame-by-frame (60Hz micro-corrections).
-        # Humans correct in "ballistic bursts" (wait for error -> push -> wait).
+    token = data['session_token']
+    angle_history = data.get('angle_history', [])
+    cart_history = data.get('cart_history', []) 
+    
+    if token not in active_sessions:
+        return jsonify({'success': False, 'verified': False, 'message': 'Session Expired'}), 403
+    del active_sessions[token]
+
+    # Fallback if client is using cached old JS
+    if not cart_history:
+        cart_history = [0] * len(angle_history)
+    
+    ai_pct, human_pct, details = analyze_behavior_pattern(angle_history, cart_history)
+    
+    # --- LOGGING ---
+    logger.info("="*50)
+    logger.info(f"VERIFICATION ATTEMPT - Session: {token[:8]}...")
+    logger.info(f"PROBABILITY :: Human: {human_pct}% | Bot: {ai_pct}%")
+    logger.info(f"METRICS     :: Lag: {details.get('estimated_lag')}f | Roughness: {details.get('input_roughness')} | Speed: {details.get('avg_speed')}")
+    logger.info(f"FLAGS       :: {details.get('reasons')}")
+    logger.info("="*50)
+
+    metrics = {'ai': round(ai_pct, 1), 'human': round(human_pct, 1)}
+
+    # Helper for failures
+    def fail(msg):
+        session['attempts'] += 1
+        left = MAX_ATTEMPTS - session['attempts']
         
-        immediate_corrections = 0
-        significant_frames = 0
+        logger.warning(f"FAILED: {msg} (Attempts left: {left})")
         
-        # Look at frames where the pole was actually leaning (ignore the stable center)
-        for i in range(1, len(angle_history) - 1):
-            current_angle = angle_history[i]
-            next_angle = angle_history[i+1]
-            
-            if abs(current_angle) > 0.02: # Only check if there's a real tilt
-                significant_frames += 1
-                
-                # Check if the movement was an IMMEDIATE correction towards zero
-                # If Angle > 0 (Right) AND Next < Current (Moving Left) -> Correction
-                # If Angle < 0 (Left) AND Next > Current (Moving Right) -> Correction
-                is_correcting = (current_angle > 0 and next_angle < current_angle) or \
-                                (current_angle < 0 and next_angle > current_angle)
-                
-                if is_correcting:
-                    immediate_corrections += 1
+        response = {
+            'success': True, 
+            'verified': False, 
+            'attempts_left': left,
+            'message': msg,
+            'metrics': metrics
+        }
+        if left <= 0: response['redirect'] = '/failed'
+        return jsonify(response)
 
-        if significant_frames > 30:
-            reflex_ratio = immediate_corrections / significant_frames
-            logger.info(f"Reflex Analysis: {reflex_ratio:.3f} (Frames: {significant_frames})")
-            
-            # PID bots score > 0.95 (they never let it slide). 
-            # Humans usually score 0.60 - 0.85 (we let it slide, then catch it).
-            if reflex_ratio > 0.92: 
-                logger.info(f"Session failed: Superhuman reflexes ({reflex_ratio:.2f})")
-                return jsonify({
-                    'success': True,
-                    'verified': False,
-                    'message': 'ANOMALY DETECTED: Reflexes exceed biological limits.'
-                })
+    # 1. Survival Check
+    if len(angle_history) < PASS_FRAME_THRESHOLD:
+        duration_sec = len(angle_history) / 60
+        return fail(f'Failed: Lasted {duration_sec:.1f}s / 5.0s')
 
-        # 7. Verification Success
-        sign_changes = sum(1 for i in range(1, len(angle_history)) 
-                          if angle_history[i] * angle_history[i-1] < 0)
-        max_angle = max(abs(a) for a in angle_history) if angle_history else 0
-        
-        logger.info(f"Session verified: {len(angle_history)} frames, {sign_changes} oscillations")
-        
-        return jsonify({
-            'success': True,
-            'verified': True,
-            'message': 'REACTOR STABILIZED: Human operator confirmed.',
-            'stats': {
-                'duration': len(angle_history) / 60,
-                'max_deviation': math.degrees(max_angle),
-                'oscillations': sign_changes,
-                'stability_score': min(100, int(100 * (1 - max_angle / 1.2)))
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"Verification error: {e}")
-        return jsonify({
-            'success': False,
-            'verified': False,
-            'message': 'SYSTEM ERROR: Verification failed.'
-        }), 500
+    # 2. Crash Check
+    if len(angle_history) > 0 and abs(angle_history[-1]) > 1.4:
+         return fail('Failed: Reactor crashed at the finish line.')
 
+    # 3. AI Probability Check (UPDATED)
+    if ai_pct > human_pct: 
+        return fail('Try again (Likely Bot)')
 
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({'error': 'Not found'}), 404
+    # Success Case
+    session['verified'] = True
+    max_angle = max(abs(a) for a in angle_history) if angle_history else 0
+    
+    logger.info("SUCCESS: User verified as Human.")
 
-
-@app.errorhandler(500)
-def server_error(e):
-    logger.error(f"Server error: {e}")
-    return jsonify({'error': 'Internal server error'}), 500
-
+    return jsonify({
+        'success': True,
+        'verified': True,
+        'redirect': '/success',
+        'metrics': metrics,
+        'stats': {
+            'duration': len(angle_history) / 60,
+            'max_deviation': math.degrees(max_angle),
+            'stability_score': min(100, int(100 * (1 - max_angle / 1.2)))
+        }
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
-    debug = os.environ.get('DEBUG', 'False').lower() == 'true'
-    
-    logger.info(f"Starting Reactor Stabilizer on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host='0.0.0.0', port=port, debug=True)
