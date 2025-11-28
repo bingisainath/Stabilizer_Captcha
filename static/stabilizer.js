@@ -1,8 +1,3 @@
-/**
- * REACTOR STABILIZER - Physics Engine & Logic
- */
-
-// ==================== CONFIGURATION ====================
 const CONFIG = {
   canvasWidth: 600,
   canvasHeight: 400,
@@ -20,7 +15,7 @@ const CONFIG = {
   groundColor: "#222222",
 };
 
-// ==================== GAME STATE ====================
+
 let state = {
   initialized: false,
   running: false,
@@ -37,13 +32,12 @@ let state = {
   mouseInCanvas: false,
   frameCount: 0,
   angleHistory: [],
-  cartHistory: [], // [NEW] Track human input for backend analysis
+  cartHistory: [],
   currentGravity: 0.5,
   currentLength: 100,
   currentJolt: 0,
 };
 
-// ==================== DOM ELEMENTS ====================
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
@@ -55,7 +49,6 @@ const verifyBtn = document.getElementById("verifyBtn");
 const retryBtn = document.getElementById("retryBtn");
 const motivationOverlay = document.getElementById("motivationalOverlay");
 
-// ==================== INITIALIZATION ====================
 async function initGame() {
   try {
     statusEl.className = "loading";
@@ -96,7 +89,6 @@ async function initGame() {
   }
 }
 
-// ==================== PHYSICS ENGINE ====================
 function updatePhysics() {
   if (!state.running || state.gameOver) return;
 
@@ -105,15 +97,12 @@ function updatePhysics() {
   state.currentLength = state.schedule.length[frame];
   state.currentJolt = state.schedule.force_jolts[frame];
 
-  // [FIX] Update Cart Position INSIDE physics loop to ensure sync
   const targetX = Math.max(CONFIG.cartWidth / 2, Math.min(CONFIG.canvasWidth - CONFIG.cartWidth / 2, state.mouseX));
   state.cartX = targetX;
 
-  // Calculate Acceleration (The force applied by user)
   const cartAcceleration = state.cartX - state.prevCartX;
   state.prevCartX = state.cartX;
 
-  // Physics Calc
   const gravityTorque = (state.currentGravity / state.currentLength) * Math.sin(state.poleAngle);
   const inertialTorque = ((-CONFIG.cartForceMultiplier * cartAcceleration) / state.currentLength) * Math.cos(state.poleAngle);
   const angularAcceleration = gravityTorque + inertialTorque + state.currentJolt;
@@ -122,7 +111,6 @@ function updatePhysics() {
   state.angularVelocity *= CONFIG.dampingFactor;
   state.poleAngle += state.angularVelocity;
 
-  // [NEW] Record both Angle and Cart position for Cross-Correlation
   state.angleHistory.push(state.poleAngle);
   state.cartHistory.push(state.cartX);
   state.frameCount++;
@@ -134,7 +122,6 @@ function updatePhysics() {
   }
 }
 
-// ==================== INPUT HANDLING ====================
 function setupInputHandlers() {
   canvas.addEventListener("mousemove", (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -157,7 +144,6 @@ function setupInputHandlers() {
 }
 
 function startGame() {
-  // Sync state immediately on start
   state.cartX = state.mouseX;
   state.prevCartX = state.mouseX;
   
@@ -165,7 +151,7 @@ function startGame() {
   state.angularVelocity = 0;
   state.frameCount = 0;
   state.angleHistory = [];
-  state.cartHistory = []; // Reset history
+  state.cartHistory = [];
   state.running = true;
   state.gameOver = false;
   state.success = false;
@@ -179,7 +165,6 @@ function startGame() {
   if(retryBtn) retryBtn.classList.remove("visible");
 }
 
-// ==================== GAME FLOW ====================
 function endGame(success) {
   state.running = false;
   state.gameOver = true;
@@ -212,7 +197,7 @@ async function verifyHuman() {
       body: JSON.stringify({
         session_token: state.sessionToken,
         angle_history: state.angleHistory,
-        cart_history: state.cartHistory // [NEW] Send Cart Data
+        cart_history: state.cartHistory 
       }),
     });
 
@@ -279,25 +264,21 @@ async function resetGame() {
   await initGame();
 }
 
-// ==================== RENDERING ====================
 function render() {
   ctx.fillStyle = "#0d0d0d";
   ctx.fillRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
 
-  // Grid
   ctx.strokeStyle = "rgba(0, 255, 65, 0.05)";
   ctx.lineWidth = 1;
   for (let x = 0; x < CONFIG.canvasWidth; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CONFIG.canvasHeight); ctx.stroke(); }
   for (let y = 0; y < CONFIG.canvasHeight; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CONFIG.canvasWidth, y); ctx.stroke(); }
 
-  // Ground
   const groundY = CONFIG.canvasHeight - 50;
   ctx.strokeStyle = CONFIG.groundColor;
   ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(CONFIG.canvasWidth, groundY); ctx.stroke();
 
-  // Cart (Use state.cartX directly as it is now authoritative)
-  // For non-running preview, we update cartX manually to mouse
+
   if (!state.running) {
      const targetX = Math.max(CONFIG.cartWidth / 2, Math.min(CONFIG.canvasWidth - CONFIG.cartWidth / 2, state.mouseX));
      state.cartX = targetX;
@@ -310,7 +291,6 @@ function render() {
   ctx.strokeStyle = "#888"; ctx.lineWidth = 2;
   ctx.strokeRect(state.cartX - CONFIG.cartWidth / 2, cartY, CONFIG.cartWidth, CONFIG.cartHeight);
 
-  // Pole
   const poleLength = state.running ? state.currentLength : 100;
   const pivotX = state.cartX;
   const pivotY = cartY;
@@ -325,11 +305,10 @@ function render() {
   ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(poleEndX, poleEndY); ctx.stroke();
   ctx.shadowBlur = 0;
 
-  // Pivot & Tip
   ctx.fillStyle = CONFIG.pivotColor; ctx.beginPath(); ctx.arc(pivotX, pivotY, 8, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = poleColor; ctx.beginPath(); ctx.arc(poleEndX, poleEndY, 6, 0, Math.PI * 2); ctx.fill();
 
-  // Danger Lines
+
   if (state.running) {
     ctx.strokeStyle = "rgba(255, 51, 51, 0.3)"; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
     ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(pivotX + Math.sin(-CONFIG.failAngle) * poleLength, pivotY - Math.cos(-CONFIG.failAngle) * poleLength); ctx.stroke();

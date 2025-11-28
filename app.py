@@ -11,12 +11,10 @@ try:
 except ImportError:
     np = None
 
-# Configuration
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(BASE_DIR, '../logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# Configure Logger to print to console immediately
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(message)s'
@@ -29,7 +27,6 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 active_sessions = {}
 SESSION_TIMEOUT = 600
 
-# CONFIGURATION
 FRAME_COUNT = 300 
 PASS_FRAME_THRESHOLD = FRAME_COUNT - 20 
 MAX_ATTEMPTS = 3 
@@ -72,9 +69,7 @@ def generate_force_jolts(frame_count):
                     jolts[jolt_frame + decay] = jolts[jolt_frame] * (0.5 ** decay)
     return jolts
 
-# =========================================================
-#  BEHAVIORAL ANALYSIS ENGINE
-# =========================================================
+
 def analyze_behavior_pattern(angle_history, cart_history):
     """
     Revised Analysis.
@@ -83,36 +78,27 @@ def analyze_behavior_pattern(angle_history, cart_history):
     if not angle_history or len(angle_history) < 20 or not cart_history:
         return 0, 100, {"error": "insufficient_data"}
 
-    # --- 1. DERIVATIVES ---
-    # Cart Velocity: How fast the user moved the mouse
     cart_velocity = [cart_history[i] - cart_history[i-1] for i in range(1, len(cart_history))]
-    # Cart Acceleration (Jerk/Entropy): How "shaky" the movement was
+
     cart_accel = [cart_velocity[i] - cart_velocity[i-1] for i in range(1, len(cart_velocity))]
 
-    # --- 2. METRICS ---
 
-    # A. Input Entropy (The "Hand Tremor" Check)
     input_roughness = sum(abs(a) for a in cart_accel) / len(cart_accel) if cart_accel else 0
 
-    # B. Reaction Lag (The "Biological Delay" Check)
-    # Check Cross-Correlation between Angle (Problem) and Cart Velocity (Solution).
     best_correlation = -1
     estimated_lag = 0
     
-    # Normalize for correlation calculation
     def normalize(data):
         mean = sum(data) / len(data)
         std = (sum((x - mean) ** 2 for x in data) / len(data)) ** 0.5
         if std == 0: return [0] * len(data)
         return [(x - mean) / std for x in data]
 
-    # Use a slice of the data to avoid startup transients
     sample_size = min(len(angle_history), len(cart_velocity)) - 10
     if sample_size > 50:
         angle_sample = normalize(angle_history[10:10+sample_size])
         vel_sample = normalize(cart_velocity[10:10+sample_size])
 
-        # Check lags from 0 to 25 frames
         for lag in range(0, 25):
             dot_product = 0
             count = 0
@@ -126,14 +112,11 @@ def analyze_behavior_pattern(angle_history, cart_history):
                 best_correlation = corr
                 estimated_lag = lag
 
-    # C. Efficiency (The "Lazy Bot" Check)
     total_distance = sum(abs(v) for v in cart_velocity)
     
-    # --- 3. SCORING ---
     bot_score = 0
     reasons = []
 
-# Check 1: Input Roughness (Entropy)
     if input_roughness < 0.4:
         bot_score += 60
         reasons.append(f"Mechanical Smoothness (Roughness: {input_roughness:.2f})")
@@ -141,7 +124,6 @@ def analyze_behavior_pattern(angle_history, cart_history):
         bot_score += 30
         reasons.append("Excessive Input Noise / Artificial Jitter")
 
-    # Check 2: Reaction Lag
     if estimated_lag > 5:
         bot_score += 50
         reasons.append(f"High Latency Response (Lag: {estimated_lag}f)")
@@ -149,19 +131,15 @@ def analyze_behavior_pattern(angle_history, cart_history):
         bot_score += 50
         reasons.append(f"Predictive/Instant Reaction (Lag: {estimated_lag}f)")
 
-    # Check 3: Speed Analysis (Updated)
     avg_speed = total_distance / len(cart_velocity)
     
     if avg_speed < 0.2:
-        # Too efficient (Lazy Bot)
         bot_score += 40
         reasons.append(f"Unnatural Efficiency (Speed: {avg_speed:.2f})")
     elif avg_speed > 1.5:
-        # Too erratic/fast (Shaker Bot)
         bot_score += 40
         reasons.append(f"Erratic/High Speed (Speed: {avg_speed:.2f})")
         
-    # Final Probability
     final_ai_prob = min(100, max(0, bot_score))
     final_human_prob = 100 - final_ai_prob
 
@@ -174,7 +152,6 @@ def analyze_behavior_pattern(angle_history, cart_history):
 
     return final_ai_prob, final_human_prob, details
 
-# --- ROUTES ---
 
 @app.route('/')
 def index():
@@ -238,13 +215,11 @@ def verify_stability():
         return jsonify({'success': False, 'verified': False, 'message': 'Session Expired'}), 403
     del active_sessions[token]
 
-    # Fallback if client is using cached old JS
     if not cart_history:
         cart_history = [0] * len(angle_history)
     
     ai_pct, human_pct, details = analyze_behavior_pattern(angle_history, cart_history)
     
-    # --- LOGGING ---
     logger.info("="*50)
     logger.info(f"VERIFICATION ATTEMPT - Session: {token[:8]}...")
     logger.info(f"PROBABILITY :: Human: {human_pct}% | Bot: {ai_pct}%")
@@ -254,7 +229,6 @@ def verify_stability():
 
     metrics = {'ai': round(ai_pct, 1), 'human': round(human_pct, 1)}
 
-    # Helper for failures
     def fail(msg):
         session['attempts'] += 1
         left = MAX_ATTEMPTS - session['attempts']
@@ -271,20 +245,16 @@ def verify_stability():
         if left <= 0: response['redirect'] = '/failed'
         return jsonify(response)
 
-    # 1. Survival Check
     if len(angle_history) < PASS_FRAME_THRESHOLD:
         duration_sec = len(angle_history) / 60
         return fail(f'Failed: Lasted {duration_sec:.1f}s / 5.0s')
 
-    # 2. Crash Check
     if len(angle_history) > 0 and abs(angle_history[-1]) > 1.4:
          return fail('Failed: Reactor crashed at the finish line.')
 
-    # 3. AI Probability Check (UPDATED)
     if ai_pct >= human_pct: 
         return fail('Try again (Likely Bot)')
 
-    # Success Case
     session['verified'] = True
     max_angle = max(abs(a) for a in angle_history) if angle_history else 0
     

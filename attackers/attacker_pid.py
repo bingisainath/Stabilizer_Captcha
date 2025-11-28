@@ -1,9 +1,3 @@
-"""
-PID Controller Attacker - FIXED VERSION
-- Properly handles verification and redirect flow
-- Ensures navigation to success page after cracking CAPTCHA
-"""
-
 import time
 import math
 import logging
@@ -21,9 +15,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# =============================================================
-#  PID CONTROLLER  (UNCHANGED)
-# =============================================================
 class PIDController:
     def __init__(self, kp=80, ki=0.02, kd=35):
         self.kp = kp
@@ -50,20 +41,14 @@ class PIDController:
         return p_term + i_term + d_term
 
 
-# =============================================================
-#  PID ATTACKER CLASS WITH FIXED VERIFICATION FLOW
-# =============================================================
 class PIDAttacker:
     def __init__(self):
-        self.url = "http://localhost:3000"
+        self.url = "https://a6b989d413eeee.lhr.life"
         self.headless = False
         self.driver = None
         self.pid = PIDController()
         self.current_mouse_x = None
 
-    # ----------------------------------------------------------
-    # LOGIN PAGE HANDLING
-    # ----------------------------------------------------------
     def setup(self):
         options = webdriver.ChromeOptions()
         options.add_argument("--disable-blink-features=AutomationControlled")
@@ -86,7 +71,6 @@ class PIDAttacker:
             self.driver.find_element(By.ID, "password").send_keys("access_code_123")
             self.driver.find_element(By.ID, "loginBtn").click()
 
-            # Wait for captcha page
             WebDriverWait(self.driver, 8).until(
                 EC.presence_of_element_located((By.ID, "gameCanvas"))
             )
@@ -98,12 +82,8 @@ class PIDAttacker:
 
         return True
 
-    # ----------------------------------------------------------
-    # START GAME (Remove overlay + click canvas)
-    # ----------------------------------------------------------
     def start_game(self):
         try:
-            # Remove "CLICK TO ENGAGE" overlay if present
             try:
                 engage = WebDriverWait(self.driver, 3).until(
                     EC.visibility_of_element_located((By.ID, "clickPrompt"))
@@ -113,7 +93,6 @@ class PIDAttacker:
             except:
                 pass
 
-            # Click canvas to start
             canvas = self.driver.find_element(By.ID, "gameCanvas")
             canvas.click()
             time.sleep(0.3)
@@ -123,9 +102,6 @@ class PIDAttacker:
             logger.error(f"start_game failed: {e}")
             return False
 
-    # ----------------------------------------------------------
-    # READ GAME STATE
-    # ----------------------------------------------------------
     def get_state(self):
         try:
             angle_text = self.driver.find_element(By.ID, "angleDisplay").text
@@ -142,9 +118,6 @@ class PIDAttacker:
         except:
             return None
 
-    # ----------------------------------------------------------
-    # MOVE MOUSE
-    # ----------------------------------------------------------
     def move_mouse(self, target_x, smoothing=0.5):
         try:
             canvas = self.driver.find_element(By.ID, "gameCanvas")
@@ -167,44 +140,34 @@ class PIDAttacker:
         except:
             pass
 
-    # ----------------------------------------------------------
-    # VERIFY AND HANDLE REDIRECT (FIXED)
-    # ----------------------------------------------------------
     def verify(self):
         logger.info("Clicking VERIFY COMPLETION button...")
 
         try:
-            # Wait for and click verify button
             verify_btn = WebDriverWait(self.driver, 8).until(
                 EC.element_to_be_clickable((By.ID, "verifyBtn"))
             )
             self.driver.execute_script("arguments[0].click();", verify_btn)
             logger.info("VERIFY button clicked successfully")
 
-            # Wait for result overlay to appear
             result = WebDriverWait(self.driver, 5).until(
                 EC.presence_of_element_located((By.ID, "resultTitle"))
             ).text
 
             logger.info(f"Verification result: {result}")
 
-            # Check if verification succeeded
             if "HUMAN VERIFIED" in result.upper():
                 logger.info("✓ CAPTCHA CRACKED! Waiting for redirect...")
                 
-                # FIXED: Force navigation to success page
-                # Wait a moment for any automatic redirect, then force it
                 time.sleep(2)
                 
-                # Check if we're still on captcha page
                 if "/captcha" in self.driver.current_url:
                     logger.info("No automatic redirect detected, forcing navigation...")
                     self.driver.get(self.url + "/success")
                     time.sleep(1)
                 
-                # Verify we reached success page
                 if "/success" in self.driver.current_url:
-                    logger.info("🎉 SUCCESS PAGE REACHED!")
+                    logger.info(" SUCCESS PAGE REACHED!")
                     return True
                 else:
                     logger.warning(f"Unexpected URL: {self.driver.current_url}")
@@ -217,9 +180,6 @@ class PIDAttacker:
             logger.error(f"Verification failed with error: {e}")
             return False
 
-    # ----------------------------------------------------------
-    # CHECK CURRENT PAGE STATUS
-    # ----------------------------------------------------------
     def check_redirect(self):
         url = self.driver.current_url
         
@@ -230,9 +190,6 @@ class PIDAttacker:
         else:
             return "CONTINUE"
 
-    # ----------------------------------------------------------
-    # PID CONTROL LOOP
-    # ----------------------------------------------------------
     def run_pid_loop(self):
         canvas = self.driver.find_element(By.ID, "gameCanvas")
         width = canvas.size["width"]
@@ -256,7 +213,6 @@ class PIDAttacker:
 
             elapsed = now - start_time
             
-            # Run for at least 5.5 seconds to ensure passing threshold
             if elapsed > 5.5:
                 logger.info(f"Stabilization complete after {elapsed:.2f}s")
                 break
@@ -264,7 +220,6 @@ class PIDAttacker:
             angle = state["angle"]
             angle_deg = state["angle_deg"]
 
-            # Emergency control for large deviations
             if abs(angle) > DANGER_ZONE:
                 control = -MAX_OUTPUT if angle > 0 else MAX_OUTPUT
             else:
@@ -276,8 +231,7 @@ class PIDAttacker:
 
             self.move_mouse(target)
 
-            # Log progress
-            if int(elapsed * 10) % 10 == 0:  # Log every second
+            if int(elapsed * 10) % 10 == 0: 
                 logger.info(
                     f"[t={elapsed:.1f}s] [ANGLE={angle_deg:+6.2f}°] "
                     f"[PID={control:+6.2f}] [CART={self.current_mouse_x:.1f}]"
@@ -287,13 +241,8 @@ class PIDAttacker:
 
         time.sleep(0.5)
 
-    # ----------------------------------------------------------
-    # MAIN ATTACK LOOP WITH 3 ATTEMPTS
-    # ----------------------------------------------------------
     def attack(self):
-        logger.info("=" * 60)
         logger.info("PID CAPTCHA ATTACKER - STARTING")
-        logger.info("=" * 60)
 
         if not self.setup():
             logger.error("Setup failed")
@@ -302,43 +251,35 @@ class PIDAttacker:
         attempt = 1
 
         while attempt <= 3:
-            logger.info(f"\n{'='*20} ATTEMPT {attempt}/3 {'='*20}")
+            logger.info(f"\nATTEMPT {attempt}/3")
 
             if not self.start_game():
                 logger.error("Could not start game")
                 return False
 
-            # Run PID stabilization
             self.run_pid_loop()
 
-            # Attempt verification
             verified = self.verify()
             
             if verified:
                 status = self.check_redirect()
                 
                 if status == "SUCCESS":
-                    logger.info("=" * 60)
-                    logger.info("🎉 ATTACK SUCCESSFUL - CAPTCHA DEFEATED!")
-                    logger.info("=" * 60)
-                    time.sleep(3)  # Keep browser open to see success
+                    logger.info(" ATTACK SUCCESSFUL - CAPTCHA DEFEATED!")
+                    time.sleep(3) 
                     return True
 
-            # Check if we hit max attempts
             status = self.check_redirect()
             if status == "FAILED":
                 logger.info("Maximum attempts exceeded → FAILED PAGE")
                 return False
 
-            # Retry with new CAPTCHA
             logger.info("Retrying with new CAPTCHA challenge...")
             self.driver.get(self.url + "/captcha")
             time.sleep(1.5)
             attempt += 1
 
-        logger.info("=" * 60)
         logger.info("All 3 attempts exhausted - Attack failed")
-        logger.info("=" * 60)
         return False
 
     def cleanup(self):
@@ -346,9 +287,6 @@ class PIDAttacker:
             self.driver.quit()
 
 
-# =============================================================
-# RUN
-# =============================================================
 if __name__ == "__main__":
     attacker = PIDAttacker()
     try:

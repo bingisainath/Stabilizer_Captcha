@@ -1,4 +1,4 @@
 venv
 requirements-incl-attackers.txt
-.env
 __MACOSX
+.env
