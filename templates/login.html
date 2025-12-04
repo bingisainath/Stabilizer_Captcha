@@ -37,6 +37,20 @@
         margin-bottom: 5px;
         letter-spacing: 2px;
       }
+      .reactor-icon {
+        font-size: 28px;
+        display: inline-block;
+        animation: spin 3s linear infinite;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
       .logo p {
         font-size: 12px;
         color: #888;
@@ -125,7 +139,7 @@
   <body>
     <div class="login-container">
       <div class="logo">
-        <h1>⚛ REACTOR ACCESS</h1>
+        <h1><span class="reactor-icon">⚛</span> REACTOR ACCESS</h1>
         <p>Stabilization System Login</p>
       </div>
 

@@ -1,6 +1,9 @@
+"""Gemini Vision LLM-based Attacker"""
+
 import time
-import base64
 import os
+import sys
+import json
 import logging
 from io import BytesIO
 from selenium import webdriver
@@ -14,7 +17,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import google.generativeai as genai
-import json
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
@@ -22,7 +24,9 @@ logger = logging.getLogger("Gemini-Attacker")
 
 
 class LLMVisionAttacker:
-    def __init__(self, url="https://a6b989d413eeee.lhr.life", api_key=None, headless=False):
+    """Vision-based LLM CAPTCHA attacker using Gemini."""
+    
+    def __init__(self, url, api_key=None, headless=False):
         self.url = url
         self.driver = None
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
@@ -36,7 +40,7 @@ class LLMVisionAttacker:
             )
 
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.5-flash") 
+        self.model = genai.GenerativeModel("gemini-2.0-flash-exp")
 
         self.decision_history = []
 
@@ -118,10 +122,12 @@ Do NOT output anything outside the JSON.
             image_part = {"mime_type": "image/png", "data": screenshot_bytes}
             response = self.model.generate_content(
                 contents=[prompt, image_part],
-                safety_settings={'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE',
-                                 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE',
-                                 'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE',
-                                 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE'}
+                safety_settings={
+                    'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE',
+                    'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE',
+                    'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE',
+                    'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE'
+                }
             )
 
             text_response = response.text.strip().replace("```json", "").replace("```", "")
@@ -144,9 +150,6 @@ Do NOT output anything outside the JSON.
             pass
 
     def attack(self, max_attempts=3):
-        """
-        Main attack function that handles setup, the attempt loop, and retry logic.
-        """
         self.setup()
         if not self.driver:
             logger.error("Driver not initialized. Aborting.")
@@ -164,8 +167,7 @@ Do NOT output anything outside the JSON.
 
                 if i == max_attempts - 1:
                     logger.warning("Final attempt failed.")
-                    break 
-                
+                    break
 
                 logger.info("Attempt failed. Clicking 'TRY AGAIN'...")
                 try:
@@ -183,7 +185,7 @@ Do NOT output anything outside the JSON.
                     logger.info("Game reset. Preparing for next attempt.")
                     
                 except Exception as e:
-                    logger.error(f"Could not click retry button. Checking for redirect... Error: {e}")
+                    logger.error(f"Could not click retry button: {e}")
                     if "/failed" in self.driver.current_url:
                         logger.error("Max attempts reached early. Aborting loop.")
                         break
@@ -214,12 +216,7 @@ Do NOT output anything outside the JSON.
             if self.driver:
                 self.driver.quit()
 
-
     def _run_single_attempt(self):
-        """
-        Runs one full attempt of the game, from click to verification.
-        Returns True on success, False on failure.
-        """
         try:
             canvas = WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable((By.ID, "gameCanvas"))
@@ -229,11 +226,11 @@ Do NOT output anything outside the JSON.
             canvas.click()
             logger.info("Game started. Engaging OODA control loop...")
             
-            cart_x = 300 
+            cart_x = 300
             start = time.time()
-            self.decision_history = [] 
+            self.decision_history = []
 
-            while time.time() - start < 6.0: 
+            while time.time() - start < 6.0:
                 state = self.get_game_state()
                 if not state:
                     logger.warning("Could not get game state, skipping frame.")
@@ -253,7 +250,6 @@ Do NOT output anything outside the JSON.
                 move = int(decision.get("movement_pixels", 0))
                 reason = decision.get("reasoning", "No reasoning.")
                 cart_x += move
-                
 
                 logger.info("OODA: Act! (Moving mouse)")
                 self.move_mouse(cart_x)
@@ -261,17 +257,15 @@ Do NOT output anything outside the JSON.
                 self.decision_history.append({"angle": state["angle"], "action": move})
                 logger.info(f"==> [t={state['time']:.1f}s] Angle: {state['angle']:>5.1f}° | Gemini: {move:>3}px | Reason: {reason}")
 
-
                 try:
                     if self.driver.find_element(By.ID, "resultOverlay").is_displayed():
                         logger.warning("Game failure detected mid-loop. Breaking.")
                         break
                 except:
-                    pass 
+                    pass
 
             logger.info("Control loop finished. Waiting for final verification...")
-            time.sleep(1) 
-
+            time.sleep(1)
 
             try:
                 if self.driver.find_element(By.ID, "resultOverlay").is_displayed():
@@ -295,24 +289,22 @@ Do NOT output anything outside the JSON.
                 
                 if "VERIFIED" in res or "SUCCESS" in res:
                     logger.info(f"✓ PASSED: {res}")
-                    return True 
+                    return True
                 else:
                     logger.warning(f"✗ FAILED: {res}")
-                    return False 
+                    return False
                     
             except Exception as e:
                 logger.error(f"Could not determine final result: {e}")
-                return False 
+                return False
             
         except Exception as e:
             logger.error(f"An error occurred during the attack attempt: {e}")
-            return False 
+            return False
 
 
 if __name__ == "__main__":
-    import sys
-    url = sys.argv[1] if len(sys.argv) > 1 else "https://a6b989d413eeee.lhr.life"
+    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:3000"
     
-
     attacker = LLMVisionAttacker(url=url, headless=False)
     attacker.attack(max_attempts=3)

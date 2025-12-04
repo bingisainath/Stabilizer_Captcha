@@ -1,12 +1,19 @@
-# Core dependencies
+# Core Flask Dependencies
 flask>=3.0.0
+gunicorn>=21.2.0
+
+# Data Processing
 numpy>=1.24.0
+
+# Environment Management
+python-dotenv>=1.0.0
+
+# Attacker Dependencies (for testing)
 selenium>=4.15.0
 Pillow>=10.0.0
 
-# Optional for LLM attacker
-openai>=1.3.0
+# Gemini Attacker (Optional)
+google-generativeai>=0.3.0
 
-# Production
-gunicorn>=21.2.0
-python-dotenv>=1.0.0
+# Production Utilities
+python-json-logger>=2.0.0

@@ -1,6 +1,9 @@
+"""PID Controller Mathematical Attacker"""
+
 import time
 import math
 import logging
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -16,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 class PIDController:
+    """Proportional-Integral-Derivative controller for inverted pendulum."""
+    
     def __init__(self, kp=80, ki=0.02, kd=35):
         self.kp = kp
         self.ki = ki
@@ -28,23 +33,22 @@ class PIDController:
             self.integral = 0.0
 
         p_term = self.kp * error
-
         self.integral += error * dt
         self.integral = max(-2.0, min(2.0, self.integral))
         i_term = self.ki * self.integral
-
         derivative = (error - self.previous_error) / dt if dt > 0 else 0.0
         d_term = self.kd * derivative
-
         self.previous_error = error
 
         return p_term + i_term + d_term
 
 
 class PIDAttacker:
-    def __init__(self):
-        self.url = "https://a6b989d413eeee.lhr.life"
-        self.headless = False
+    """PID controller-based CAPTCHA attacker."""
+    
+    def __init__(self, url, headless=False):
+        self.url = url
+        self.headless = headless
         self.driver = None
         self.pid = PIDController()
         self.current_mouse_x = None
@@ -162,12 +166,12 @@ class PIDAttacker:
                 time.sleep(2)
                 
                 if "/captcha" in self.driver.current_url:
-                    logger.info("No automatic redirect detected, forcing navigation...")
+                    logger.info("No automatic redirect, forcing navigation...")
                     self.driver.get(self.url + "/success")
                     time.sleep(1)
                 
                 if "/success" in self.driver.current_url:
-                    logger.info(" SUCCESS PAGE REACHED!")
+                    logger.info("✓ SUCCESS PAGE REACHED!")
                     return True
                 else:
                     logger.warning(f"Unexpected URL: {self.driver.current_url}")
@@ -231,7 +235,7 @@ class PIDAttacker:
 
             self.move_mouse(target)
 
-            if int(elapsed * 10) % 10 == 0: 
+            if int(elapsed * 10) % 10 == 0:
                 logger.info(
                     f"[t={elapsed:.1f}s] [ANGLE={angle_deg:+6.2f}°] "
                     f"[PID={control:+6.2f}] [CART={self.current_mouse_x:.1f}]"
@@ -265,8 +269,8 @@ class PIDAttacker:
                 status = self.check_redirect()
                 
                 if status == "SUCCESS":
-                    logger.info(" ATTACK SUCCESSFUL - CAPTCHA DEFEATED!")
-                    time.sleep(3) 
+                    logger.info("✓ ATTACK SUCCESSFUL - CAPTCHA DEFEATED!")
+                    time.sleep(3)
                     return True
 
             status = self.check_redirect()
@@ -288,7 +292,9 @@ class PIDAttacker:
 
 
 if __name__ == "__main__":
-    attacker = PIDAttacker()
+    url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:3000"
+    
+    attacker = PIDAttacker(url=url, headless=False)
     try:
         success = attacker.attack()
         exit(0 if success else 1)
