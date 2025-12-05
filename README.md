@@ -10,7 +10,7 @@ The enclosed demonstration proves the system's security by launching three disti
 
 To execute this demo successfully, the following must be installed on your testing machine:
 
-1. **Python 3.11** (Required)
+1. **Python 3.9+** (Required)
 2. **Google Chrome** (Required for the Selenium-based attackers)
 3. **Terminal/Shell** (Bash or Zsh)
 
