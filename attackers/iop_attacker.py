@@ -1,3 +1,9 @@
+"""
+Interoperability Code to Attack Group 22 & 23
+This Python script automates the solving of visual-semantic CAPTCHAs
+
+Authors: Sai Ruthwik Thummurugoti (thummurs), Sainath Bingi (bingis) and Aniket Mishra (mishraa1)
+"""
 import time, io, re, os
 from PIL import Image
 import google.generativeai as genai

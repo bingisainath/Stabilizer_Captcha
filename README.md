@@ -99,17 +99,8 @@ The script will guide you through three attack scenarios. Here is what you shoul
 
 ## ❓ Troubleshooting
 
-- **"Python not found":** Ensure `python3` points to Python 3.11. If your python executable is named differently (e.g., `python3.11`), you may need to edit line 23 of `auto.sh`.
+- **"Python not found":** Ensure `python3` points to Python 3.9+. If your python executable is named differently (e.g., `python3.9`), you may need to edit line 23 of `auto.sh`.
 
 - **"Chromedriver error":** Ensure Google Chrome is installed. Selenium usually manages the driver automatically, but a very old version of Chrome may cause issues.
 
 - **"Gemini Skipped":** If the script says "SKIPPING: GEMINI_API_KEY not set", please verify your `.env` file exists and contains the key.
-
-## 📝 License
-
-[Add your license information here]
-
-## 👤 Author
-
-**Student:** [Your Name]  
-**Course:** [Course Name]
