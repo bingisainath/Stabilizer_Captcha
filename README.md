@@ -1,106 +1,113 @@
-# ⚛️ Reactor Stabilizer CAPTCHA
+# STEPS TO RUN THE PROJECT
 
-## 📋 Overview
+## System Requirements
 
-This project implements a novel "Embodied Cognition" CAPTCHA verification system. Unlike standard CAPTCHAs that test knowledge (e.g., "select the traffic lights"), this system verifies humanity by testing motor control agency and reaction latency.
+In order to run this demo successfully, you have to install the following in your testing machine:
 
-The enclosed demonstration proves the system's security by launching three distinct automated attacks against the CAPTCHA, showcasing how specific defense mechanisms defeat different types of bots (Mathematical, Reinforcement Learning, and Generative AI).
+- Python 3.9+ (Required)
+- Selenium (Prerequisite to the Selenium-based attackers)
+- Terminal/Shell (Bash or Zsh)
 
-## 💻 System Requirements
+## Setup & Configuration
 
-To execute this demo successfully, the following must be installed on your testing machine:
+### Set up Environment Variables
 
-1. **Python 3.9+** (Required)
-2. **Google Chrome** (Required for the Selenium-based attackers)
-3. **Terminal/Shell** (Bash or Zsh)
+This is an env.example file that is located in the root. You should find a way of creating a .env file in which you put the required API keys.
 
-## ⚙️ Setup & Configuration
+Copy the example file:
 
-### 1. Configure Environment Variables
+```bash
+cp .env.example .env
+```
 
-A `.env.example` file is provided in the root directory. You must create a `.env` file to store the necessary API keys.
+Paste your Google Gemini API Key:
 
-1. Copy the example file:
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+open .env
+GEMINIAPIKEY=youractualapikeyhere
+```
 
-2. Open `.env` and paste your Google Gemini API Key:
-   ```
-   GEMINI_API_KEY=your_actual_api_key_here
-   ```
+The automation script will automatically avoid the AI part of the demo by skipping the addition of the GEMINIAPIKEY.
 
-> **Note:** If you skip adding the `GEMINI_API_KEY`, the automation script will gracefully skip the AI portion of the demo.
+### Make Script Executable
 
-### 2. Make Script Executable
-
-Ensure the automation script has permission to run:
+Make sure that the automation script is allowed to execute:
 
 ```bash
 chmod +x auto.sh
 ```
 
-## 🚀 Execution Instructions
+## Execution Instructions
 
-A single shell script, `auto.sh`, automates the entire process. This script handles the virtual environment creation, dependency installation, server management, and attacker execution.
+The whole process is automated by just one shell script which is auto.sh. This script takes care of the creation of the virtual environment, dependency installation, server management, and execution of the attacker.
 
-To run the full demonstration:
+To execute the entire demonstration:
 
 ```bash
 ./auto.sh
 ```
 
-### What happens when you run this script?
+### So what is the result of running this script?
 
-The script performs the following actions automatically:
+The following actions are automatically done in the script:
 
-1. **Bootstraps Environment:** Checks for Python 3.11, creates a `.venv`, and installs dependencies.
-2. **Starts Server:** Launches the Flask backend application in the background (Port 3000).
-3. **Runs Attacks:** Sequentially launches three different bot scripts against the live server.
-4. **Cleanup:** Automatically shuts down the server and processes when finished.
+- **Bootstraps Environment:** Verifies Python 3.9+ and builds .venv and installs dependencies.
+- **Starts Server:** Starts Flask backend program in the background (Port 3000).
+- **Runs Attacks:** This is a sequence of bot scripts directly launched at the live server.
+- **Cleanup:** Closes the server and processes automatically upon its completion.
 
-## 🧪 Demo Walkthrough & Expected Results
+# Run the Server Manually
 
-The script will guide you through three attack scenarios. Here is what you should look for:
+Once the virtual environment is enabled, you can run the server manually:
+
+```bash
+python app.py
+```
+
+The server will start on Port 3000 at localhost.
+
+## Expectation Results and Demo Walkthrough
+
+The script will take you through three scenarios of attacks. The following is what you are to seek:
 
 ### Phase 1: The Mechanical Bot (PID Controller)
 
-**What it is:** A scripted bot using mathematical formulas to calculate perfect balance.
+**What it does:** It is a bot that calculates perfect balance by using mathematical formulas.
 
-**Behavior:** The cursor will move smoothly, and the pole will remain perfectly upright for 5 seconds.
+**Behavior:** The cursor is going to move smoothly, and the pole will stay upright in its entirety within 5 seconds.
 
-**Defense Mechanism:** "The Reflex Trap"
+**Defense Mechanism:** "Reflex Trap defense mechanism"
 
-**Expected Result:** ❌ VERIFICATION FAILED. The server detects that the reaction time is "superhuman" (0-frame lag) and rejects the session despite perfect performance.
-
----
+**Anticipated Analysis:** FAILURE to verify. The server realizes that the reaction time is superhuman (0-frame lag) and refuses to allow the session despite the faultlessness.
 
 ### Phase 2: The Learned Bot (Reinforcement Learning)
 
-**What it is:** A Q-Learning AI agent trained on the standard game physics.
+**What it does:** A Q-Learning agent which is trained in the standard game physics.
 
-**Behavior:** The bot will likely crash the pole within 1-2 seconds.
+**Behavior:** It is expected that the pole will be crashed by the bot in 1-2 seconds.
 
-**Defense Mechanism:** "Dynamic Chaos"
+**Defence Mechanism:** Dynamic Chaos.
 
-**Expected Result:** ❌ CRASH. The server randomizes gravity and pole length for every session. The AI's pre-trained memory (`q_table.pkl`) does not match the current physics, causing it to fail.
-
----
+**Expected Result:** CRASH. Each time the user has a session, the server selects the gravity and pole length. The pre-trained memory of the AI (q_table.pkl) is not compatible with the existing physics and therefore fails.
 
 ### Phase 3: The Vision AI (Google Gemini)
 
-**What it is:** A Multimodal LLM that "sees" the game screen and instructs the mouse.
+**What it does:** Multimodal LLM, which is able to see the screen and command the mouse.
 
-**Behavior:** The cursor will move jerkily, and the pole will oscillate wildly before falling.
+**Behavior:** The cursor will move in a jerky fashion and the pole will swing around and fall down.
 
-**Defense Mechanism:** "The OODA Loop Latency"
+**Defense Regularity:** The OODA Loop Latency.
 
-**Expected Result:** ❌ CRASH. The processing time (Image Capture → API Upload → Inference → Action) introduces a >200ms delay. In an unstable system like an inverted pendulum, this lag makes stabilization impossible.
+**Expected Result:** CRASH. The processing delay (Image Capture - API Upload - Inference - Action) is a delay of over 200ms. This lag is something that cannot allow this system to stabilize (an inverted pendulum is an unstable system).
 
-## ❓ Troubleshooting
+## Team & Contributions
 
-- **"Python not found":** Ensure `python3` points to Python 3.9+. If your python executable is named differently (e.g., `python3.9`), you may need to edit line 23 of `auto.sh`.
+This was a partnership project and every team member contributed his or her individual proficiency:
 
-- **"Chromedriver error":** Ensure Google Chrome is installed. Selenium usually manages the driver automatically, but a very old version of Chrome may cause issues.
+### Individual Contributions
 
-- **"Gemini Skipped":** If the script says "SKIPPING: GEMINI_API_KEY not set", please verify your `.env` file exists and contains the key.
+- **Front-End Pyla:** Interface Construction & ShellScripting.
+- **Jai Mangesh Nagle:** Raspberry Pi and Back-end Architecture.
+- **Sainath Bingi:** Reinforcement Learning Attacker and IOP-Attacker.
+- **Sai Ruthwik Thummurugoti:** IOP-Attacker PID Controller Attacker.
+- **Aniket Mishra:** LLM Vision Attacker/IOP-Attacker.
