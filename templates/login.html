@@ -1,3 +1,8 @@
+<!--
+Displays the initial login screen where the user enters an email and access code to start the session.
+Authors: Keshwith Pyla (pylak)
+-->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -199,7 +204,6 @@
 
         if (hasError) return;
 
-        // Session Logic
         sessionStorage.setItem("reactor_email", email);
         sessionStorage.setItem("reactor_logged_in", "true");
 
@@ -208,7 +212,6 @@
         loginBtn.disabled = true;
 
         setTimeout(() => {
-          // This redirects to the route defined in app.py
           window.location.href = "/captcha";
         }, 500);
       });

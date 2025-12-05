@@ -1,3 +1,8 @@
+/*
+This is the client-side game engine. It renders the inverted pendulum on the HTML5 canvas, handles physics calculations (gravity, velocity), captures mouse movement, and records the telemetry data (angleHistory, cartHistory) to send back to the server for verification
+Authors: Jai Mangesh Nagle (jnagle)
+*/
+
 const CONFIG = {
   canvasWidth: 600,
   canvasHeight: 400,

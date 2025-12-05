@@ -1,21 +1,17 @@
-#!/bin/bash
+# This is the master automation script for the Reactor Stabilizer project
+# Authors: Keshwith Pyla (pylak)
 
-# --- Configuration ---
 VENV_DIR="venv"
 PORT=3000
 SERVER_PID=""
 
-# Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Ensure we are in the script's directory
 cd "$(dirname "$0")"
-
-# --- Functions ---
 
 setup_environment() {
     echo -e "${BLUE}[*] Checking system environment...${NC}"
@@ -80,25 +76,21 @@ cleanup() {
 
 trap cleanup SIGINT EXIT
 
-# --- Main Automation Sequence ---
 
 setup_environment
 start_server_bg
 
-# 1. Run PID Attacker
 echo -e "\n${GREEN}=== 1. Running PID Attacker (Mechanical Bot) ===${NC}"
 python attackers/attacker_pid.py
 echo -e "${BLUE}[*] PID Attack complete.${NC}"
 sleep 2
 
-# 2. Run RL Attacker
 echo -e "\n${GREEN}=== 2. Running RL Attacker (Q-Learning Bot) ===${NC}"
-# Run in subshell to handle directory change for q_table.pkl
 (cd attackers && python attacker_rl.py)
 echo -e "${BLUE}[*] RL Attack complete.${NC}"
 sleep 2
 
-# 3. Run Gemini Attacker
+
 echo -e "\n${GREEN}=== 3. Running Gemini Attacker (AI Vision Bot) ===${NC}"
 if grep -q "your_api_key_here" .env; then
     echo -e "${RED}[!] SKIPPING: GEMINI_API_KEY not set in .env file.${NC}"
@@ -107,4 +99,3 @@ else
 fi
 echo -e "${BLUE}[*] Gemini Attack complete.${NC}"
 
-# Script will exit and trigger 'cleanup' via trap

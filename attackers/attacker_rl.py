@@ -1,3 +1,8 @@
+"""
+A script that uses Reinforcement Learning (Q-Learning) to play the game. It attempts to learn a policy for balancing the pole.
+Authors: Sainath Bingi (bingis)
+"""
+
 import time
 import math
 import pickle
@@ -113,7 +118,6 @@ class RLAttacker:
 
 
     def check_page_status(self):
-        """Check what page we're on"""
         try:
             current_url = self.driver.current_url
             
@@ -281,7 +285,7 @@ class RLAttacker:
             self.driver.quit()
 
     def attack(self, load_pretrained=True):
-        print("⚔️ STARTING RL ATTACK MODE")
+        print("STARTING RL ATTACK MODE")
 
         if load_pretrained:
             if not self.agent.load():
@@ -399,7 +403,7 @@ class RLAttacker:
                         EC.element_to_be_clickable((By.CSS_SELECTOR, ".retry-btn"))
                     )
                     retry_btn.click()
-                    print("🔄 TRY AGAIN button clicked")
+                    print("TRY AGAIN button clicked")
                     time.sleep(1.5)
                 except:
                     print("No retry button found, reloading captcha...")

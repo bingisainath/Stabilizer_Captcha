@@ -1,3 +1,9 @@
+"""
+A sophisticated script that uses Google's Gemini API to "see" the game screen and make decisions. It tests the "Latency Gap" defense, as the time taken to process the image usually causes the bot to crash.
+Authors: Aniket Mishra (mishraa1)
+"""
+
+
 import time
 import base64
 import os
@@ -144,9 +150,6 @@ Do NOT output anything outside the JSON.
             pass
 
     def attack(self, max_attempts=3):
-        """
-        Main attack function that handles setup, the attempt loop, and retry logic.
-        """
         self.setup()
         if not self.driver:
             logger.error("Driver not initialized. Aborting.")
@@ -216,10 +219,6 @@ Do NOT output anything outside the JSON.
 
 
     def _run_single_attempt(self):
-        """
-        Runs one full attempt of the game, from click to verification.
-        Returns True on success, False on failure.
-        """
         try:
             canvas = WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable((By.ID, "gameCanvas"))

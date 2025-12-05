@@ -1,3 +1,8 @@
+"""
+A script that uses a PID (Proportional-Integral-Derivative) Controller to play the game. It is designed to test the system's "Reflex Trap" by reacting with mathematical perfection and zero latency.
+Authors: Sai Ruthwik Thummurugoti (thummurs)
+"""
+
 import time
 import math
 import logging

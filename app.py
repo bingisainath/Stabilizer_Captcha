@@ -1,3 +1,8 @@
+"""
+This is the main Flask backend server. It handles user sessions, serves the web pages, and implements the core security logic. It generates the random "chaos schedules" (physics parameters) and contains the verify_stability endpoint that analyzes user behavior (reaction time, input roughness) to distinguish humans from bots.
+Authors: Jai Mangesh Nagle (jnagle)
+"""
+
 import random
 import math
 import os
@@ -71,10 +76,6 @@ def generate_force_jolts(frame_count):
 
 
 def analyze_behavior_pattern(angle_history, cart_history):
-    """
-    Revised Analysis.
-    Uses Cart Velocity vs Angle Correlation (Reaction Time) and Input Entropy.
-    """
     if not angle_history or len(angle_history) < 20 or not cart_history:
         return 0, 100, {"error": "insufficient_data"}
 
