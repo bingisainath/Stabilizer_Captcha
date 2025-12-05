@@ -28,10 +28,9 @@ A `.env.example` file is provided in the root directory. You must create a `.env
 2. Open `.env` and paste your Google Gemini API Key:
    ```
    GEMINI_API_KEY=your_actual_api_key_here
-   SECRET_KEY=any_random_string
    ```
 
-> **Note:** If you skip adding the `GEMINI_API_KEY`, the automation script will gracefully skip the AI Vision portion of the demo.
+> **Note:** If you skip adding the `GEMINI_API_KEY`, the automation script will gracefully skip the AI portion of the demo.
 
 ### 2. Make Script Executable
 
