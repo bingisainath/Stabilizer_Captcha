@@ -43,7 +43,7 @@ class PIDController:
 
 class PIDAttacker:
     def __init__(self):
-        self.url = "https://a6b989d413eeee.lhr.life"
+        self.url = "http://127.0.0.1:3000"
         self.headless = False
         self.driver = None
         self.pid = PIDController()

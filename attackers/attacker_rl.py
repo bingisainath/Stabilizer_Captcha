@@ -66,7 +66,7 @@ class QLearningAgent:
 
 
 class RLAttacker:
-    def __init__(self, url="https://a6b989d413eeee.lhr.life", train_episodes=20, headless=False):
+    def __init__(self, url="http://127.0.0.1:3000", train_episodes=20, headless=False):
         self.url = url
         self.train_episodes = train_episodes
         self.headless = headless
@@ -429,7 +429,7 @@ class RLAttacker:
 
 if __name__ == "__main__":
     bot = RLAttacker(
-        url="https://a6b989d413eeee.lhr.life",
+        url="http://127.0.0.1:3000",
         train_episodes=20,
         headless=False
     )

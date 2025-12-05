@@ -1,0 +1,113 @@
+ * Serving Flask app 'app'
+ * Debug mode: on
+2025-12-05 17:36:49,133 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3000
+ * Running on http://10.6.57.102:3000
+2025-12-05 17:36:49,133 | INFO | [33mPress CTRL+C to quit[0m
+2025-12-05 17:36:49,135 | INFO |  * Restarting with stat
+2025-12-05 17:36:49,250 | WARNING |  * Debugger is active!
+2025-12-05 17:36:49,254 | INFO |  * Debugger PIN: 658-026-124
+2025-12-05 17:36:50,650 | INFO | 127.0.0.1 - - [05/Dec/2025 17:36:50] "GET / HTTP/1.1" 200 -
+2025-12-05 17:36:50,698 | INFO | 127.0.0.1 - - [05/Dec/2025 17:36:50] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-12-05 17:36:51,325 | INFO | 127.0.0.1 - - [05/Dec/2025 17:36:51] "GET /captcha HTTP/1.1" 200 -
+2025-12-05 17:36:51,338 | INFO | 127.0.0.1 - - [05/Dec/2025 17:36:51] "GET /static/stabilizer.js HTTP/1.1" 200 -
+2025-12-05 17:36:51,346 | INFO | 127.0.0.1 - - [05/Dec/2025 17:36:51] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:36:52,529 | INFO | ==================================================
+2025-12-05 17:36:52,529 | INFO | VERIFICATION ATTEMPT - Session: PJOJuBYY...
+2025-12-05 17:36:52,529 | INFO | PROBABILITY :: Human: 0% | Bot: 100%
+2025-12-05 17:36:52,529 | INFO | METRICS     :: Lag: 0f | Roughness: 7.308 | Speed: 3.519
+2025-12-05 17:36:52,529 | INFO | FLAGS       :: ['Excessive Input Noise / Artificial Jitter', 'Predictive/Instant Reaction (Lag: 0f)', 'Erratic/High Speed (Speed: 3.52)']
+2025-12-05 17:36:52,529 | INFO | ==================================================
+2025-12-05 17:36:52,529 | WARNING | FAILED: Failed: Lasted 0.5s / 5.0s (Attempts left: 2)
+2025-12-05 17:36:52,529 | INFO | 127.0.0.1 - - [05/Dec/2025 17:36:52] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:37:06,411 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:06] "GET /captcha HTTP/1.1" 200 -
+2025-12-05 17:37:06,417 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:06] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-12-05 17:37:06,421 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:06] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:37:09,030 | INFO | ==================================================
+2025-12-05 17:37:09,030 | INFO | VERIFICATION ATTEMPT - Session: fLjMBSiV...
+2025-12-05 17:37:09,030 | INFO | PROBABILITY :: Human: 0% | Bot: 100%
+2025-12-05 17:37:09,030 | INFO | METRICS     :: Lag: 0f | Roughness: 9.333 | Speed: 4.48
+2025-12-05 17:37:09,030 | INFO | FLAGS       :: ['Excessive Input Noise / Artificial Jitter', 'Predictive/Instant Reaction (Lag: 0f)', 'Erratic/High Speed (Speed: 4.48)']
+2025-12-05 17:37:09,030 | INFO | ==================================================
+2025-12-05 17:37:09,031 | WARNING | FAILED: Failed: Lasted 0.4s / 5.0s (Attempts left: 1)
+2025-12-05 17:37:09,031 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:09] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:37:22,944 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:22] "GET /captcha HTTP/1.1" 200 -
+2025-12-05 17:37:22,950 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:22] "[36mGET /static/stabilizer.js HTTP/1.1[0m" 304 -
+2025-12-05 17:37:22,953 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:22] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:37:32,332 | INFO | ==================================================
+2025-12-05 17:37:32,333 | INFO | VERIFICATION ATTEMPT - Session: -gUgmJow...
+2025-12-05 17:37:32,333 | INFO | PROBABILITY :: Human: 50% | Bot: 50%
+2025-12-05 17:37:32,333 | INFO | METRICS     :: Lag: 24f | Roughness: 0.423 | Speed: 0.211
+2025-12-05 17:37:32,333 | INFO | FLAGS       :: ['High Latency Response (Lag: 24f)']
+2025-12-05 17:37:32,333 | INFO | ==================================================
+2025-12-05 17:37:32,333 | WARNING | FAILED: Failed: Lasted 3.8s / 5.0s (Attempts left: 0)
+2025-12-05 17:37:32,334 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:32] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:37:32,345 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:32] "GET /failed HTTP/1.1" 200 -
+2025-12-05 17:37:42,421 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:42] "GET / HTTP/1.1" 200 -
+2025-12-05 17:37:42,470 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:42] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-12-05 17:37:43,070 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:43] "GET /captcha HTTP/1.1" 200 -
+2025-12-05 17:37:43,079 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:43] "GET /static/stabilizer.js HTTP/1.1" 200 -
+2025-12-05 17:37:43,090 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:43] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:37:46,695 | INFO | ==================================================
+2025-12-05 17:37:46,696 | INFO | VERIFICATION ATTEMPT - Session: y5R1LB2G...
+2025-12-05 17:37:46,696 | INFO | PROBABILITY :: Human: 0% | Bot: 100%
+2025-12-05 17:37:46,696 | INFO | METRICS     :: Lag: 0f | Roughness: 4.118 | Speed: 2.029
+2025-12-05 17:37:46,696 | INFO | FLAGS       :: ['Excessive Input Noise / Artificial Jitter', 'Predictive/Instant Reaction (Lag: 0f)', 'Erratic/High Speed (Speed: 2.03)']
+2025-12-05 17:37:46,696 | INFO | ==================================================
+2025-12-05 17:37:46,696 | WARNING | FAILED: Failed: Lasted 1.2s / 5.0s (Attempts left: 2)
+2025-12-05 17:37:46,696 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:46] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:37:46,996 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:46] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:37:55,194 | INFO | ==================================================
+2025-12-05 17:37:55,194 | INFO | VERIFICATION ATTEMPT - Session: uMNOjrzJ...
+2025-12-05 17:37:55,194 | INFO | PROBABILITY :: Human: 20% | Bot: 80%
+2025-12-05 17:37:55,194 | INFO | METRICS     :: Lag: 0f | Roughness: 2.513 | Speed: 1.25
+2025-12-05 17:37:55,194 | INFO | FLAGS       :: ['Excessive Input Noise / Artificial Jitter', 'Predictive/Instant Reaction (Lag: 0f)']
+2025-12-05 17:37:55,194 | INFO | ==================================================
+2025-12-05 17:37:55,194 | WARNING | FAILED: Failed: Lasted 3.2s / 5.0s (Attempts left: 1)
+2025-12-05 17:37:55,195 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:55] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:37:55,382 | INFO | 127.0.0.1 - - [05/Dec/2025 17:37:55] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:38:00,198 | INFO | ==================================================
+2025-12-05 17:38:00,198 | INFO | VERIFICATION ATTEMPT - Session: tAckngPT...
+2025-12-05 17:38:00,198 | INFO | PROBABILITY :: Human: 0% | Bot: 100%
+2025-12-05 17:38:00,198 | INFO | METRICS     :: Lag: 0f | Roughness: 3.596 | Speed: 1.778
+2025-12-05 17:38:00,199 | INFO | FLAGS       :: ['Excessive Input Noise / Artificial Jitter', 'Predictive/Instant Reaction (Lag: 0f)', 'Erratic/High Speed (Speed: 1.78)']
+2025-12-05 17:38:00,199 | INFO | ==================================================
+2025-12-05 17:38:00,199 | WARNING | FAILED: Failed: Lasted 1.5s / 5.0s (Attempts left: 0)
+2025-12-05 17:38:00,199 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:00] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:38:00,209 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:00] "GET /failed HTTP/1.1" 200 -
+2025-12-05 17:38:06,437 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:06] "GET / HTTP/1.1" 200 -
+2025-12-05 17:38:06,481 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:06] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-12-05 17:38:07,099 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:07] "GET /captcha HTTP/1.1" 200 -
+2025-12-05 17:38:07,107 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:07] "GET /static/stabilizer.js HTTP/1.1" 200 -
+2025-12-05 17:38:07,114 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:07] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:38:11,997 | INFO | ==================================================
+2025-12-05 17:38:11,998 | INFO | VERIFICATION ATTEMPT - Session: oC0D7T2x...
+2025-12-05 17:38:11,998 | INFO | PROBABILITY :: Human: 0% | Bot: 100%
+2025-12-05 17:38:11,998 | INFO | METRICS     :: Lag: 0f | Roughness: 0.0 | Speed: 0.0
+2025-12-05 17:38:11,998 | INFO | FLAGS       :: ['Mechanical Smoothness (Roughness: 0.00)', 'Predictive/Instant Reaction (Lag: 0f)', 'Unnatural Efficiency (Speed: 0.00)']
+2025-12-05 17:38:11,998 | INFO | ==================================================
+2025-12-05 17:38:11,998 | WARNING | FAILED: Failed: Lasted 1.7s / 5.0s (Attempts left: 2)
+2025-12-05 17:38:11,999 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:11] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:38:13,368 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:13] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:38:19,498 | INFO | ==================================================
+2025-12-05 17:38:19,498 | INFO | VERIFICATION ATTEMPT - Session: 3-C1Exs7...
+2025-12-05 17:38:19,498 | INFO | PROBABILITY :: Human: 0% | Bot: 100%
+2025-12-05 17:38:19,498 | INFO | METRICS     :: Lag: 0f | Roughness: 0.0 | Speed: 0.0
+2025-12-05 17:38:19,498 | INFO | FLAGS       :: ['Mechanical Smoothness (Roughness: 0.00)', 'Predictive/Instant Reaction (Lag: 0f)', 'Unnatural Efficiency (Speed: 0.00)']
+2025-12-05 17:38:19,498 | INFO | ==================================================
+2025-12-05 17:38:19,498 | WARNING | FAILED: Failed: Lasted 2.6s / 5.0s (Attempts left: 1)
+2025-12-05 17:38:19,499 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:19] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:38:21,383 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:21] "GET /init_stabilizer HTTP/1.1" 200 -
+2025-12-05 17:38:26,298 | INFO | ==================================================
+2025-12-05 17:38:26,298 | INFO | VERIFICATION ATTEMPT - Session: 1x4Q-UFQ...
+2025-12-05 17:38:26,298 | INFO | PROBABILITY :: Human: 0% | Bot: 100%
+2025-12-05 17:38:26,298 | INFO | METRICS     :: Lag: 0f | Roughness: 0.0 | Speed: 0.0
+2025-12-05 17:38:26,298 | INFO | FLAGS       :: ['Mechanical Smoothness (Roughness: 0.00)', 'Predictive/Instant Reaction (Lag: 0f)', 'Unnatural Efficiency (Speed: 0.00)']
+2025-12-05 17:38:26,298 | INFO | ==================================================
+2025-12-05 17:38:26,299 | WARNING | FAILED: Failed: Lasted 2.0s / 5.0s (Attempts left: 0)
+2025-12-05 17:38:26,299 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:26] "POST /verify_stability HTTP/1.1" 200 -
+2025-12-05 17:38:26,308 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:26] "GET /failed HTTP/1.1" 200 -
+2025-12-05 17:38:34,584 | INFO | 127.0.0.1 - - [05/Dec/2025 17:38:34] "GET / HTTP/1.1" 200 -
+/Users/keshwithpyla/.pyenv/versions/3.9.6/lib/python3.9/multiprocessing/resource_tracker.py:216: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

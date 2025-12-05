@@ -22,7 +22,7 @@ logger = logging.getLogger("Gemini-Attacker")
 
 
 class LLMVisionAttacker:
-    def __init__(self, url="https://a6b989d413eeee.lhr.life", api_key=None, headless=False):
+    def __init__(self, url="http://127.0.0.1:3000", api_key=None, headless=False):
         self.url = url
         self.driver = None
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
@@ -159,7 +159,7 @@ Do NOT output anything outside the JSON.
                 success = self._run_single_attempt()
 
                 if success:
-                    logger.info("🎉 ATTACK SUCCESSFUL. CAPTCHA DEFEATED. (UNEXPECTED)")
+                    logger.info(" ATTACK SUCCESSFUL. CAPTCHA DEFEATED. (UNEXPECTED)")
                     return True
 
                 if i == max_attempts - 1:
@@ -311,7 +311,7 @@ Do NOT output anything outside the JSON.
 
 if __name__ == "__main__":
     import sys
-    url = sys.argv[1] if len(sys.argv) > 1 else "https://a6b989d413eeee.lhr.life"
+    url = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:3000"
     
 
     attacker = LLMVisionAttacker(url=url, headless=False)
